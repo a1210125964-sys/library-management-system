@@ -5,9 +5,16 @@ const state = {
   users: [],
   editingBookId: null,
   editingCategoryId: null,
-  activePage: "dashboard",
+  activePage: "borrowQuery",
   theme: localStorage.getItem("theme") || "system"
 };
+
+function setHidden(id, hidden) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.toggle("hidden", hidden);
+  }
+}
 
 function cssVar(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -29,10 +36,6 @@ function cycleTheme() {
   localStorage.setItem("theme", state.theme);
   applyTheme(state.theme);
   show(state.theme === "system" ? "已切换到系统主题" : `已切换到${state.theme === "light" ? "浅色" : "深色"}模式`);
-  if (isAdmin()) {
-    loadStats();
-    renderUserChart();
-  }
 }
 
 function initThemeToggle() {
@@ -97,10 +100,14 @@ function isAdmin() {
 function switchPage(page) {
   state.activePage = page;
   const titles = {
-    dashboard: "管理员仪表盘",
-    books: "图书管理列表",
-    users: "用户管理页",
-    borrows: "借阅记录页"
+    borrowQuery: "借阅图书查询",
+    returnBook: "图书归还",
+    studentManage: "学生信息管理",
+    bookManage: "图书管理",
+    bookQuery: "图书查询",
+    addBook: "添加图书",
+    changePassword: "修改密码",
+    addAdmin: "添加管理员"
   };
   document.getElementById("pageTitle").textContent = titles[page] || "管理后台";
 
@@ -120,38 +127,65 @@ function initNav() {
       return;
     }
     const page = target.dataset.page;
-    if (page === "users" && !isAdmin()) {
-      show("仅管理员可访问用户管理");
+    const adminPages = ["studentManage", "bookManage", "bookQuery", "addBook", "changePassword", "addAdmin"];
+    const userPages = ["borrowQuery", "returnBook"];
+    if (!isAdmin() && adminPages.includes(page)) {
+      show("仅管理员可访问该模块");
       return;
     }
-    if (page === "dashboard" && !isAdmin()) {
-      switchPage("borrows");
+    if (isAdmin() && userPages.includes(page)) {
+      show("当前为管理员账号，请使用管理模块");
       return;
     }
     switchPage(page);
+    loadPageData(page);
   });
 }
 
 function refreshUI() {
   const login = !!state.user;
   const admin = isAdmin();
-  document.getElementById("logoutBtn").classList.toggle("hidden", !login);
+  setHidden("logoutBtn", !login);
   document.getElementById("userInfo").textContent = login
     ? `${state.user.realName || state.user.username} (${state.user.role})`
     : "未登录";
   document.getElementById("roleTag").textContent = admin ? "管理员模式" : "读者模式";
 
-  document.getElementById("adminPanel").classList.toggle("hidden", !admin);
-  document.getElementById("chartArea").classList.toggle("hidden", !admin);
-  document.getElementById("adminBookPanel").classList.toggle("hidden", !admin);
-  document.getElementById("adminUserPanel").classList.toggle("hidden", !admin);
-  document.getElementById("scanBtn").classList.toggle("hidden", !admin);
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !admin));
+  document.querySelectorAll(".user-only").forEach(el => el.classList.toggle("hidden", admin));
 
-  const usersNav = document.querySelector('.nav-item[data-page="users"]');
-  usersNav.classList.toggle("hidden", !admin);
+  const defaultPage = admin ? "studentManage" : "borrowQuery";
+  const visibleCurrent = document.querySelector(`.nav-item[data-page="${state.activePage}"]:not(.hidden)`);
+  if (!visibleCurrent) {
+    switchPage(defaultPage);
+  }
+}
 
-  if (!admin && state.activePage === "dashboard") {
-    switchPage("borrows");
+async function loadPageData(page) {
+  if (page === "borrowQuery") {
+    await loadBorrowQueryRecords();
+    return;
+  }
+  if (page === "returnBook") {
+    await loadReturnableRecords();
+    return;
+  }
+  if (!isAdmin()) {
+    return;
+  }
+  if (page === "studentManage") {
+    await loadStudentUsers();
+  } else if (page === "bookManage") {
+    await loadCategories();
+    await loadAdminBooks();
+  } else if (page === "bookQuery") {
+    await loadCategories();
+    await loadBooks();
+  } else if (page === "addBook") {
+    await loadCategories();
+    syncCategoryOptionsToAddBook();
+  } else if (page === "addAdmin") {
+    await loadAdminUsers();
   }
 }
 
@@ -174,8 +208,75 @@ async function validateSessionOnStartup() {
 function fillCategoryOptions(categories) {
   const filter = document.getElementById("categoryFilter");
   const bookCategory = document.getElementById("bookCategory");
-  filter.innerHTML = `<option value="">全部分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
-  bookCategory.innerHTML = `<option value="">请选择分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+  const addBookCategory = document.getElementById("addBookCategory");
+  if (filter) {
+    filter.innerHTML = `<option value="">全部分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+  }
+  if (bookCategory) {
+    bookCategory.innerHTML = `<option value="">请选择分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+  }
+  if (addBookCategory) {
+    addBookCategory.innerHTML = `<option value="">请选择分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+  }
+}
+
+function syncCategoryOptionsToAddBook() {
+  const addBookCategory = document.getElementById("addBookCategory");
+  if (!addBookCategory) {
+    return;
+  }
+  addBookCategory.innerHTML = `<option value="">请选择分类</option>${state.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+}
+
+async function loadBorrowQueryRecords() {
+  if (isAdmin()) {
+    return;
+  }
+  renderTableState("borrowQueryTable", 6, "正在加载借阅记录...", "loading");
+  try {
+    const res = await req("/api/borrow/my");
+    const rows = res.data || [];
+    const tbody = document.getElementById("borrowQueryTable");
+    tbody.innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.bookTitle}</td>
+        <td>${r.borrowTime || ""}</td>
+        <td>${r.dueTime || ""}</td>
+        <td>${r.status}</td>
+        <td>${r.overdueFee || 0}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="6">暂无借阅记录</td></tr>`;
+  } catch (e) {
+    renderTableState("borrowQueryTable", 6, "借阅记录加载失败", "error");
+    show(e.message);
+  }
+}
+
+async function loadReturnableRecords() {
+  if (isAdmin()) {
+    return;
+  }
+  renderTableState("returnBookTable", 7, "正在加载待归还记录...", "loading");
+  try {
+    const res = await req("/api/borrow/my");
+    const rows = (res.data || []).filter(r => r.status !== "RETURNED");
+    const tbody = document.getElementById("returnBookTable");
+    tbody.innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.bookTitle}</td>
+        <td>${r.borrowTime || ""}</td>
+        <td>${r.dueTime || ""}</td>
+        <td>${r.status}</td>
+        <td>${r.overdueFee || 0}</td>
+        <td><button onclick="returnBook(${r.id})">归还</button></td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无待归还图书</td></tr>`;
+  } catch (e) {
+    renderTableState("returnBookTable", 7, "待归还记录加载失败", "error");
+    show(e.message);
+  }
 }
 
 async function loadCategories() {
@@ -346,8 +447,8 @@ async function returnBook(recordId) {
   try {
     await req(`/api/borrow/return/${recordId}`, "POST");
     show("归还成功");
-    await loadMyRecords();
-    await loadMyOverdues();
+    await loadBorrowQueryRecords();
+    await loadReturnableRecords();
     await loadBooks();
     await updateNotificationBadge();
   } catch (e) {
@@ -518,7 +619,113 @@ async function createAdmin() {
     document.getElementById("adminPhone").value = "";
     document.getElementById("adminIdCard").value = "";
     document.getElementById("adminPassword").value = "";
-    await loadUsers();
+    await loadAdminUsers();
+    await loadStudentUsers();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function loadStudentUsers() {
+  if (!isAdmin()) {
+    return;
+  }
+  renderTableState("studentTable", 7, "正在加载学生列表...", "loading");
+  try {
+    const res = await req("/api/admin/users");
+    const students = (res.data || []).filter(u => u.role === "USER");
+    const tbody = document.getElementById("studentTable");
+    tbody.innerHTML = students.length ? students.map(u => `
+      <tr>
+        <td>${u.id}</td>
+        <td>${u.username}</td>
+        <td>${u.realName || ""}</td>
+        <td>${u.phone || ""}</td>
+        <td>${u.role || ""}</td>
+        <td>${u.createdAt || ""}</td>
+        <td><button onclick='resetUserPassword(${u.id}, ${JSON.stringify(u.username || "")})'>重置密码</button></td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无学生数据</td></tr>`;
+  } catch (e) {
+    renderTableState("studentTable", 7, "学生列表加载失败", "error");
+    show(e.message);
+  }
+}
+
+async function loadAdminUsers() {
+  if (!isAdmin()) {
+    return;
+  }
+  renderTableState("adminUserTable", 6, "正在加载管理员列表...", "loading");
+  try {
+    const res = await req("/api/admin/users");
+    const admins = (res.data || []).filter(u => u.role === "ADMIN");
+    const tbody = document.getElementById("adminUserTable");
+    tbody.innerHTML = admins.length ? admins.map(u => `
+      <tr>
+        <td>${u.id}</td>
+        <td>${u.username}</td>
+        <td>${u.realName || ""}</td>
+        <td>${u.phone || ""}</td>
+        <td>${u.role || ""}</td>
+        <td>${u.createdAt || ""}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="6">暂无管理员数据</td></tr>`;
+  } catch (e) {
+    renderTableState("adminUserTable", 6, "管理员列表加载失败", "error");
+    show(e.message);
+  }
+}
+
+async function createBookFromAddPage() {
+  if (!isAdmin()) {
+    show("无权限操作");
+    return;
+  }
+  try {
+    const body = {
+      title: document.getElementById("addBookTitle").value.trim(),
+      author: document.getElementById("addBookAuthor").value.trim(),
+      publisher: document.getElementById("addBookPublisher").value.trim(),
+      isbn: document.getElementById("addBookIsbn").value.trim(),
+      category: document.getElementById("addBookCategory").value,
+      stock: Number(document.getElementById("addBookStock").value)
+    };
+    await req("/api/books", "POST", body);
+    show("图书添加成功");
+    document.getElementById("addBookTitle").value = "";
+    document.getElementById("addBookAuthor").value = "";
+    document.getElementById("addBookPublisher").value = "";
+    document.getElementById("addBookIsbn").value = "";
+    document.getElementById("addBookCategory").value = "";
+    document.getElementById("addBookStock").value = "";
+    await loadBooks();
+    await loadAdminBooks();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function changeMyPassword() {
+  if (!isAdmin()) {
+    show("无权限操作");
+    return;
+  }
+  const oldPassword = document.getElementById("currentPassword").value.trim();
+  const newPassword = document.getElementById("newPassword").value.trim();
+  const confirmNewPassword = document.getElementById("confirmNewPassword").value.trim();
+  if (!oldPassword || !newPassword || !confirmNewPassword) {
+    show("请填写完整密码信息");
+    return;
+  }
+  if (newPassword !== confirmNewPassword) {
+    show("两次输入的新密码不一致");
+    return;
+  }
+  try {
+    await req("/api/users/me/change-password", "POST", { oldPassword, newPassword });
+    show("密码修改成功，请重新登录");
+    setTimeout(() => logout(), 600);
   } catch (e) {
     show(e.message);
   }
@@ -734,6 +941,92 @@ async function loadStats() {
   }
 }
 
+async function loadBookStats() {
+  if (!isAdmin()) {
+    return;
+  }
+  renderTableState("bookStatsTable", 7, "正在加载图书借阅统计...", "loading");
+  try {
+    const res = await req("/api/admin/stats/books?limit=10");
+    const rows = res.data || [];
+    const tbody = document.getElementById("bookStatsTable");
+    tbody.innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td>${r.bookId}</td>
+        <td>${r.title || ""}</td>
+        <td>${r.author || ""}</td>
+        <td>${r.category || "-"}</td>
+        <td>${r.borrowCount || 0}</td>
+        <td>${r.activeBorrowCount || 0}</td>
+        <td>${r.returnedCount || 0}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无图书借阅统计数据</td></tr>`;
+  } catch (e) {
+    renderTableState("bookStatsTable", 7, "图书借阅统计加载失败", "error");
+    show(e.message);
+  }
+}
+
+async function loadUserStats() {
+  if (!isAdmin()) {
+    return;
+  }
+  renderTableState("userStatsTable", 7, "正在加载用户借阅统计...", "loading");
+  try {
+    const res = await req("/api/admin/stats/users?limit=20");
+    const rows = res.data || [];
+    const tbody = document.getElementById("userStatsTable");
+    tbody.innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td>${r.userId}</td>
+        <td>${r.username || ""}</td>
+        <td>${r.realName || ""}</td>
+        <td>${r.borrowCount || 0}</td>
+        <td>${r.activeBorrowCount || 0}</td>
+        <td>${r.overdueCount || 0}</td>
+        <td>${r.overdueFeeTotal || 0}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无用户借阅统计数据</td></tr>`;
+  } catch (e) {
+    renderTableState("userStatsTable", 7, "用户借阅统计加载失败", "error");
+    show(e.message);
+  }
+}
+
+async function loadConfigs() {
+  if (!isAdmin()) {
+    return;
+  }
+  try {
+    const res = await req("/api/admin/configs");
+    const cfg = res.data || {};
+    document.getElementById("configBorrowDays").value = cfg.borrow_days || "";
+    document.getElementById("configMaxBorrowCount").value = cfg.max_borrow_count || "";
+    document.getElementById("configOverdueDailyFee").value = cfg.overdue_daily_fee || "";
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function updateConfigs() {
+  if (!isAdmin()) {
+    show("无权限操作");
+    return;
+  }
+  try {
+    const body = {
+      borrowDays: Number(document.getElementById("configBorrowDays").value),
+      maxBorrowCount: Number(document.getElementById("configMaxBorrowCount").value),
+      overdueDailyFee: Number(document.getElementById("configOverdueDailyFee").value)
+    };
+    await req("/api/admin/configs", "PUT", body);
+    show("系统参数已更新");
+    await loadConfigs();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
 async function scanOverdue() {
   if (!isAdmin()) {
     show("无权限操作");
@@ -772,22 +1065,11 @@ async function updateNotificationBadge(statsData = null) {
 
   initNav();
   refreshUI();
-  switchPage(isAdmin() ? "dashboard" : "borrows");
+  const defaultPage = isAdmin() ? "studentManage" : "borrowQuery";
+  switchPage(defaultPage);
 
-  await loadProfile();
   await loadCategories();
-  await loadBooks();
-  await loadMyRecords();
-  await loadMyOverdues();
-
-  if (isAdmin()) {
-    await loadAdminBooks();
-    await loadUsers();
-    await loadStats();
-  } else {
-    renderUserChart();
-    document.getElementById("adminOutput").classList.add("hidden");
-  }
+  await loadPageData(defaultPage);
 
   await updateNotificationBadge();
 })();

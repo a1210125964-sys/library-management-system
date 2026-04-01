@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>图书管理系统 - 管理后台</title>
+    <title>图书管理系统</title>
     <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -17,10 +17,15 @@
             </div>
         </div>
         <nav class="nav-menu" id="navMenu">
-            <button class="nav-item active" data-page="dashboard" type="button"><span class="nav-ico">📊</span><span>管理员仪表盘</span></button>
-            <button class="nav-item" data-page="books" type="button"><span class="nav-ico">📚</span><span>图书管理列表</span></button>
-            <button class="nav-item" data-page="users" type="button"><span class="nav-ico">👥</span><span>用户管理页</span></button>
-            <button class="nav-item" data-page="borrows" type="button"><span class="nav-ico">🧾</span><span>借阅记录页</span></button>
+            <button class="nav-item active user-only" data-page="borrowQuery" type="button"><span class="nav-ico">📖</span><span>借阅图书查询</span></button>
+            <button class="nav-item user-only" data-page="returnBook" type="button"><span class="nav-ico">↩️</span><span>图书归还</span></button>
+
+            <button class="nav-item admin-only" data-page="studentManage" type="button"><span class="nav-ico">🎓</span><span>学生信息管理</span></button>
+            <button class="nav-item admin-only" data-page="bookManage" type="button"><span class="nav-ico">📚</span><span>图书管理</span></button>
+            <button class="nav-item admin-only" data-page="bookQuery" type="button"><span class="nav-ico">🔍</span><span>图书查询</span></button>
+            <button class="nav-item admin-only" data-page="addBook" type="button"><span class="nav-ico">➕</span><span>添加图书</span></button>
+            <button class="nav-item admin-only" data-page="changePassword" type="button"><span class="nav-ico">🔐</span><span>修改密码</span></button>
+            <button class="nav-item admin-only" data-page="addAdmin" type="button"><span class="nav-ico">👨‍💼</span><span>添加管理员</span></button>
         </nav>
         <div class="sidebar-foot">
             <span class="role-tag" id="roleTag">未登录</span>
@@ -30,8 +35,8 @@
     <main class="main-content">
         <header class="topbar glass-card">
             <div>
-                <h2 id="pageTitle">管理员仪表盘</h2>
-                <p class="muted">现代企业级图书馆管理后台</p>
+                <h2 id="pageTitle">借阅图书查询</h2>
+                <p class="muted">模块按钮与功能页面一一对应</p>
             </div>
             <div class="topbar-actions">
                 <button id="themeToggle" class="icon-btn" type="button" title="切换主题" aria-label="切换深色和浅色模式">🌓</button>
@@ -44,85 +49,67 @@
             </div>
         </header>
 
-        <section id="dashboardPage" class="page-section">
-            <div class="grid-2">
-                <article class="glass-card panel" id="profileCard">
-                    <div class="panel-head">
-                        <h3>个人信息</h3>
-                        <button class="btn btn-secondary" type="button" onclick="loadProfile()">刷新</button>
-                    </div>
-                    <div class="floating-grid">
-                        <div class="field floating">
-                            <input id="profileRealName" placeholder=" " />
-                            <label for="profileRealName">姓名</label>
-                        </div>
-                        <div class="field floating">
-                            <input id="profilePhone" placeholder=" " />
-                            <label for="profilePhone">联系方式</label>
-                        </div>
-                        <div class="field floating">
-                            <input id="profileIdCard" placeholder=" " />
-                            <label for="profileIdCard">身份证号</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <button class="btn" type="button" onclick="updateProfile()">保存信息</button>
-                    </div>
-                </article>
-
-                <article class="glass-card panel" id="adminPanel">
-                    <div class="panel-head">
-                        <h3>系统统计总览</h3>
-                        <div class="row compact">
-                            <button class="btn" type="button" onclick="loadStats()">刷新统计</button>
-                            <button class="btn btn-secondary" type="button" onclick="scanOverdue()">逾期扫描</button>
-                        </div>
-                    </div>
-                    <div id="statSummary" class="stat-grid"></div>
-                </article>
-            </div>
-
-            <div class="grid-2 charts-row" id="chartArea">
-                <article class="glass-card panel chart-panel">
-                    <h3>图书流通统计</h3>
-                    <canvas id="circulationChart" width="720" height="300"></canvas>
-                </article>
-                <article class="glass-card panel chart-panel">
-                    <h3>用户结构统计</h3>
-                    <canvas id="userChart" width="720" height="300"></canvas>
-                </article>
-            </div>
-            <pre id="adminOutput" class="glass-card hidden"></pre>
-        </section>
-
-        <section id="booksPage" class="page-section hidden">
+        <section id="borrowQueryPage" class="page-section">
             <article class="glass-card panel">
                 <div class="panel-head">
-                    <h3>馆藏查询</h3>
-                    <div class="row compact">
-                        <div class="field floating inline-field">
-                            <input id="keyword" placeholder=" " />
-                            <label for="keyword">按书名 / 作者 / ISBN 搜索</label>
-                        </div>
-                        <select id="categoryFilter"></select>
-                        <button class="btn" type="button" onclick="loadBooks()">查询</button>
-                    </div>
+                    <h3>借阅图书查询</h3>
+                    <button class="btn btn-secondary" type="button" onclick="loadBorrowQueryRecords()">刷新记录</button>
                 </div>
                 <div class="table-wrap">
                     <table>
                         <thead>
                         <tr>
-                            <th>ID</th><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>库存</th><th>可借</th><th>操作</th>
+                            <th>记录ID</th><th>书名</th><th>借阅时间</th><th>应还时间</th><th>状态</th><th>逾期费</th>
                         </tr>
                         </thead>
-                        <tbody id="bookTable"></tbody>
+                        <tbody id="borrowQueryTable"></tbody>
                     </table>
                 </div>
             </article>
+        </section>
 
-            <article class="glass-card panel hidden" id="adminBookPanel">
+        <section id="returnBookPage" class="page-section hidden">
+            <article class="glass-card panel">
                 <div class="panel-head">
-                    <h3>图书与分类管理</h3>
+                    <h3>图书归还</h3>
+                    <button class="btn btn-secondary" type="button" onclick="loadReturnableRecords()">刷新待归还</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>记录ID</th><th>书名</th><th>借阅时间</th><th>应还时间</th><th>状态</th><th>逾期费</th><th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="returnBookTable"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <section id="studentManagePage" class="page-section hidden">
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>学生信息管理</h3>
+                    <button class="btn btn-secondary" type="button" onclick="loadStudentUsers()">刷新学生列表</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th><th>用户名</th><th>姓名</th><th>联系方式</th><th>角色</th><th>创建时间</th><th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="studentTable"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <section id="bookManagePage" class="page-section hidden">
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>图书管理</h3>
                     <button class="btn btn-secondary" type="button" onclick="loadAdminBooks(); loadCategories();">刷新列表</button>
                 </div>
 
@@ -173,11 +160,72 @@
             </article>
         </section>
 
-        <section id="usersPage" class="page-section hidden">
-            <article class="glass-card panel" id="adminUserPanel">
+        <section id="bookQueryPage" class="page-section hidden">
+            <article class="glass-card panel">
                 <div class="panel-head">
-                    <h3>用户管理</h3>
-                    <button class="btn btn-secondary" type="button" onclick="loadUsers()">刷新</button>
+                    <h3>图书查询</h3>
+                    <div class="row compact">
+                        <div class="field floating inline-field">
+                            <input id="keyword" placeholder=" " />
+                            <label for="keyword">按书名 / 作者 / ISBN 搜索</label>
+                        </div>
+                        <select id="categoryFilter"></select>
+                        <button class="btn" type="button" onclick="loadBooks()">查询</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>库存</th><th>可借</th><th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="bookTable"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <section id="addBookPage" class="page-section hidden">
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>添加图书</h3>
+                </div>
+                <div class="floating-grid">
+                    <div class="field floating"><input id="addBookTitle" placeholder=" " /><label for="addBookTitle">书名</label></div>
+                    <div class="field floating"><input id="addBookAuthor" placeholder=" " /><label for="addBookAuthor">作者</label></div>
+                    <div class="field floating"><input id="addBookPublisher" placeholder=" " /><label for="addBookPublisher">出版社</label></div>
+                    <div class="field floating"><input id="addBookIsbn" placeholder=" " /><label for="addBookIsbn">ISBN</label></div>
+                    <div class="field"><select id="addBookCategory"></select></div>
+                    <div class="field floating"><input id="addBookStock" type="number" min="0" placeholder=" " /><label for="addBookStock">库存</label></div>
+                </div>
+                <div class="row">
+                    <button class="btn" type="button" onclick="createBookFromAddPage()">提交新增</button>
+                </div>
+            </article>
+        </section>
+
+        <section id="changePasswordPage" class="page-section hidden">
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>修改密码</h3>
+                </div>
+                <div class="floating-grid two-cols">
+                    <div class="field floating"><input id="currentPassword" type="password" placeholder=" " /><label for="currentPassword">当前密码</label></div>
+                    <div class="field floating"><input id="newPassword" type="password" placeholder=" " /><label for="newPassword">新密码</label></div>
+                    <div class="field floating"><input id="confirmNewPassword" type="password" placeholder=" " /><label for="confirmNewPassword">确认新密码</label></div>
+                </div>
+                <div class="row">
+                    <button class="btn" type="button" onclick="changeMyPassword()">提交修改</button>
+                </div>
+            </article>
+        </section>
+
+        <section id="addAdminPage" class="page-section hidden">
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>添加管理员</h3>
+                    <button class="btn btn-secondary" type="button" onclick="loadAdminUsers()">刷新管理员列表</button>
                 </div>
                 <div class="floating-grid">
                     <div class="field floating"><input id="adminUsername" placeholder=" " /><label for="adminUsername">管理员用户名</label></div>
@@ -191,43 +239,10 @@
                     <table>
                         <thead>
                         <tr>
-                            <th>ID</th><th>用户名</th><th>姓名</th><th>联系方式</th><th>角色</th><th>创建时间</th><th>操作</th>
+                            <th>ID</th><th>用户名</th><th>姓名</th><th>联系方式</th><th>角色</th><th>创建时间</th>
                         </tr>
                         </thead>
-                        <tbody id="userTable"></tbody>
-                    </table>
-                </div>
-            </article>
-        </section>
-
-        <section id="borrowsPage" class="page-section hidden">
-            <article class="glass-card panel">
-                <div class="panel-head">
-                    <h3>借阅记录</h3>
-                    <div class="row compact">
-                        <button class="btn" type="button" onclick="loadMyRecords(); loadMyOverdues();">刷新记录</button>
-                        <button id="scanBtn" class="btn btn-secondary hidden" type="button" onclick="scanOverdue()">管理员逾期扫描</button>
-                    </div>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>记录ID</th><th>书名</th><th>借阅时间</th><th>应还时间</th><th>状态</th><th>逾期费</th><th>操作</th>
-                        </tr>
-                        </thead>
-                        <tbody id="borrowTable"></tbody>
-                    </table>
-                </div>
-                <h3 class="sub-title">逾期记录</h3>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>ID</th><th>借阅记录ID</th><th>书名</th><th>逾期天数</th><th>逾期费</th><th>创建时间</th>
-                        </tr>
-                        </thead>
-                        <tbody id="overdueTable"></tbody>
+                        <tbody id="adminUserTable"></tbody>
                     </table>
                 </div>
             </article>

@@ -71,4 +71,16 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         return userRepository.save(user);
     }
+
+    @Transactional
+    public User changePassword(User user, String oldPassword, String newPassword) {
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("当前密码不正确");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException("新密码不能与当前密码相同");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
+    }
 }

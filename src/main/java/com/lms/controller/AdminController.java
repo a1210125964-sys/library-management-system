@@ -44,6 +44,20 @@ public class AdminController {
         return success("查询成功", statisticsService.overview());
     }
 
+    @GetMapping("/stats/books")
+    public Map<String, Object> bookStats(@RequestHeader("X-Token") String token,
+                                         @RequestParam(defaultValue = "10") Integer limit) {
+        authService.requireAdmin(token);
+        return success("查询成功", statisticsService.bookBorrowStats(limit));
+    }
+
+    @GetMapping("/stats/users")
+    public Map<String, Object> userStats(@RequestHeader("X-Token") String token,
+                                         @RequestParam(defaultValue = "20") Integer limit) {
+        authService.requireAdmin(token);
+        return success("查询成功", statisticsService.userBorrowStats(limit));
+    }
+
     @GetMapping("/configs")
     public Map<String, Object> configs(@RequestHeader("X-Token") String token) {
         authService.requireAdmin(token);

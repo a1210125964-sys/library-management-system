@@ -52,6 +52,7 @@ http://localhost:8080
 - 用户
   - `GET /api/users/me`
   - `PUT /api/users/me`
+  - `POST /api/users/me/change-password`
 - 图书
   - `GET /api/books`
   - `POST /api/books`（管理员）

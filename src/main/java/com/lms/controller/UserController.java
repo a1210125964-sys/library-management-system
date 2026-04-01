@@ -1,5 +1,6 @@
 package com.lms.controller;
 
+import com.lms.dto.ChangePasswordRequest;
 import com.lms.dto.UpdateProfileRequest;
 import com.lms.model.User;
 import com.lms.service.AuthService;
@@ -34,6 +35,14 @@ public class UserController {
         User user = authService.requireUser(token);
         User updated = userService.updateProfile(user, req);
         return success("更新成功", userMap(updated));
+    }
+
+    @PostMapping("/me/change-password")
+    public Map<String, Object> changeMyPassword(@RequestHeader("X-Token") String token,
+                                                 @Valid @RequestBody ChangePasswordRequest req) {
+        User user = authService.requireUser(token);
+        userService.changePassword(user, req.getOldPassword(), req.getNewPassword());
+        return success("密码修改成功", null);
     }
 
     private Map<String, Object> success(String message, Object data) {
