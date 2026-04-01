@@ -5,8 +5,52 @@ const state = {
   users: [],
   editingBookId: null,
   editingCategoryId: null,
-  activePage: "dashboard"
+  activePage: "dashboard",
+  theme: localStorage.getItem("theme") || "system"
 };
+
+function cssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function applyTheme(theme) {
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.setAttribute("data-theme", theme);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+}
+
+function cycleTheme() {
+  const order = ["system", "light", "dark"];
+  const idx = order.indexOf(state.theme);
+  state.theme = order[(idx + 1) % order.length];
+  localStorage.setItem("theme", state.theme);
+  applyTheme(state.theme);
+  show(state.theme === "system" ? "已切换到系统主题" : `已切换到${state.theme === "light" ? "浅色" : "深色"}模式`);
+  if (isAdmin()) {
+    loadStats();
+    renderUserChart();
+  }
+}
+
+function initThemeToggle() {
+  applyTheme(state.theme);
+  const btn = document.getElementById("themeToggle");
+  if (!btn) {
+    return;
+  }
+  btn.addEventListener("click", cycleTheme);
+}
+
+function renderTableState(tbodyId, colspan, message, type = "empty") {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) {
+    return;
+  }
+  tbody.innerHTML = `<tr class="status-row status-${type}"><td colspan="${colspan}">${message}</td></tr>`;
+}
 
 function clearSession() {
   state.token = "";
@@ -143,7 +187,7 @@ async function loadCategories() {
       return;
     }
     const tbody = document.getElementById("categoryTable");
-    tbody.innerHTML = state.categories.map(c => `
+    tbody.innerHTML = state.categories.length ? state.categories.map(c => `
       <tr>
         <td>${c.id}</td>
         <td>${c.name}</td>
@@ -153,20 +197,22 @@ async function loadCategories() {
           <button onclick="deleteCategory(${c.id})">删除</button>
         </td>
       </tr>
-    `).join("");
+    `).join("") : `<tr class="status-row status-empty"><td colspan="4">暂无分类数据</td></tr>`;
   } catch (e) {
+    renderTableState("categoryTable", 4, "分类加载失败，请稍后重试", "error");
     show(e.message);
   }
 }
 
 async function loadBooks() {
+  renderTableState("bookTable", 8, "正在加载图书数据...", "loading");
   try {
     const keyword = document.getElementById("keyword").value.trim();
     const category = document.getElementById("categoryFilter").value;
     const res = await req(`/api/books${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`);
     const books = (res.data || []).filter(b => !category || b.category === category);
     const tbody = document.getElementById("bookTable");
-    tbody.innerHTML = books.map(b => `
+    tbody.innerHTML = books.length ? books.map(b => `
       <tr>
         <td>${b.id}</td>
         <td>${b.title}</td>
@@ -177,8 +223,9 @@ async function loadBooks() {
         <td>${b.availableStock}</td>
         <td>${isAdmin() ? "-" : `<button onclick="borrow(${b.id})">借阅</button>`}</td>
       </tr>
-    `).join("");
+    `).join("") : `<tr class="status-row status-empty"><td colspan="8">未找到匹配图书，请调整筛选条件</td></tr>`;
   } catch (e) {
+    renderTableState("bookTable", 8, "图书加载失败，请稍后重试", "error");
     show(e.message);
   }
 }
@@ -187,10 +234,12 @@ async function loadAdminBooks() {
   if (!isAdmin()) {
     return;
   }
+  renderTableState("adminBookTable", 8, "正在加载图书数据...", "loading");
   try {
     const res = await req("/api/books");
     const tbody = document.getElementById("adminBookTable");
-    tbody.innerHTML = (res.data || []).map(b => `
+    const rows = res.data || [];
+    tbody.innerHTML = rows.length ? rows.map(b => `
       <tr>
         <td>${b.id}</td>
         <td>${b.title}</td>
@@ -204,8 +253,9 @@ async function loadAdminBooks() {
           <button onclick="deleteBook(${b.id})">删除</button>
         </td>
       </tr>
-    `).join("");
+    `).join("") : `<tr class="status-row status-empty"><td colspan="8">暂无馆藏图书，请先新增图书</td></tr>`;
   } catch (e) {
+    renderTableState("adminBookTable", 8, "图书管理数据加载失败", "error");
     show(e.message);
   }
 }
@@ -225,15 +275,15 @@ async function borrow(bookId) {
 
 async function loadMyRecords() {
   if (isAdmin()) {
-    document.getElementById("borrowTable").innerHTML = `
-      <tr><td colspan="7">管理员账号不提供个人借阅记录展示</td></tr>
-    `;
+    renderTableState("borrowTable", 7, "管理员账号不提供个人借阅记录展示", "empty");
     return;
   }
+  renderTableState("borrowTable", 7, "正在加载借阅记录...", "loading");
   try {
     const res = await req("/api/borrow/my");
     const tbody = document.getElementById("borrowTable");
-    tbody.innerHTML = (res.data || []).map(r => `
+    const rows = res.data || [];
+    tbody.innerHTML = rows.length ? rows.map(r => `
       <tr>
         <td>${r.id}</td>
         <td>${r.bookTitle}</td>
@@ -246,19 +296,19 @@ async function loadMyRecords() {
           <button onclick="returnBook(${r.id})">归还</button>
         </td>
       </tr>
-    `).join("");
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无借阅记录</td></tr>`;
   } catch (e) {
+    renderTableState("borrowTable", 7, "借阅记录加载失败", "error");
     show(e.message);
   }
 }
 
 async function loadMyOverdues() {
   if (isAdmin()) {
-    document.getElementById("overdueTable").innerHTML = `
-      <tr><td colspan="6">管理员可通过“逾期扫描”更新系统逾期状态</td></tr>
-    `;
+    renderTableState("overdueTable", 6, "管理员可通过“逾期扫描”更新系统逾期状态", "empty");
     return;
   }
+  renderTableState("overdueTable", 6, "正在加载逾期记录...", "loading");
   try {
     const res = await req("/api/borrow/my-overdue");
     const tbody = document.getElementById("overdueTable");
@@ -274,8 +324,9 @@ async function loadMyOverdues() {
           <td>${r.createdAt || ""}</td>
         </tr>
       `).join("")
-      : `<tr><td colspan="6">暂无逾期记录</td></tr>`;
+      : `<tr class="status-row status-empty"><td colspan="6">暂无逾期记录</td></tr>`;
   } catch (e) {
+    renderTableState("overdueTable", 6, "逾期记录加载失败", "error");
     show(e.message);
   }
 }
@@ -477,11 +528,12 @@ async function loadUsers() {
   if (!isAdmin()) {
     return;
   }
+  renderTableState("userTable", 7, "正在加载用户列表...", "loading");
   try {
     const res = await req("/api/admin/users");
     state.users = res.data || [];
     const tbody = document.getElementById("userTable");
-    tbody.innerHTML = state.users.map(u => `
+    tbody.innerHTML = state.users.length ? state.users.map(u => `
       <tr>
         <td>${u.id}</td>
         <td>${u.username}</td>
@@ -491,9 +543,10 @@ async function loadUsers() {
         <td>${u.createdAt || ""}</td>
         <td><button onclick='resetUserPassword(${u.id}, ${JSON.stringify(u.username || "")})'>重置密码</button></td>
       </tr>
-    `).join("");
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无用户数据</td></tr>`;
     renderUserChart();
   } catch (e) {
+    renderTableState("userTable", 7, "用户列表加载失败", "error");
     show(e.message);
   }
 }
@@ -531,25 +584,40 @@ function renderStatSummary(data) {
 function renderCirculationChart(data) {
   const canvas = document.getElementById("circulationChart");
   const ctx = canvas.getContext("2d");
+  const textColor = cssVar("--text", "#0f172a");
+  const mutedColor = cssVar("--muted", "#64748b");
+  const lineColor = cssVar("--line-strong", "rgba(15, 23, 42, 0.16)");
+  const cardBg = cssVar("--surface-strong", "#ffffff");
   const metrics = [
-    { name: "借阅总量", value: data.borrowCount || 0, color: "#0F172A" },
-    { name: "在借数量", value: data.activeBorrowCount || 0, color: "#06B6D4" },
-    { name: "逾期记录", value: data.overdueRecordCount || 0, color: "#f59e0b" }
+    { name: "借阅总量", value: data.borrowCount || 0, start: "#2563eb", end: "#1d4ed8" },
+    { name: "在借数量", value: data.activeBorrowCount || 0, start: "#06b6d4", end: "#0891b2" },
+    { name: "逾期记录", value: data.overdueRecordCount || 0, start: "#f59e0b", end: "#d97706" }
   ];
 
   const width = canvas.width;
   const height = canvas.height;
-  const left = 52;
-  const bottom = 34;
+  const left = 58;
+  const bottom = 40;
   const chartW = width - left - 24;
   const chartH = height - bottom - 24;
   const max = Math.max(...metrics.map(m => m.value), 1);
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = cardBg;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.strokeStyle = "rgba(15, 23, 42, 0.28)";
+  const yTicks = 4;
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= yTicks; i++) {
+    const y = 24 + (chartH / yTicks) * i;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    ctx.lineTo(width - 20, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(left, 24);
@@ -557,20 +625,33 @@ function renderCirculationChart(data) {
   ctx.lineTo(width - 20, height - bottom);
   ctx.stroke();
 
-  const barWidth = Math.floor(chartW / (metrics.length * 1.6));
+  const barWidth = Math.floor(chartW / (metrics.length * 1.7));
   const gap = Math.floor((chartW - barWidth * metrics.length) / (metrics.length - 1));
+
+  ctx.fillStyle = mutedColor;
+  ctx.font = "12px Segoe UI";
+  for (let i = 0; i <= yTicks; i++) {
+    const tickVal = Math.round(max - (max / yTicks) * i);
+    const y = 28 + (chartH / yTicks) * i;
+    ctx.fillText(String(tickVal), 18, y);
+  }
 
   metrics.forEach((m, i) => {
     const x = left + i * (barWidth + gap);
     const h = Math.round((m.value / max) * (chartH - 20));
     const y = height - bottom - h;
 
-    ctx.fillStyle = m.color;
+    const grad = ctx.createLinearGradient(0, y, 0, y + h);
+    grad.addColorStop(0, m.start);
+    grad.addColorStop(1, m.end);
+    ctx.fillStyle = grad;
     ctx.fillRect(x, y, barWidth, h);
 
-    ctx.fillStyle = "#334155";
+    ctx.fillStyle = mutedColor;
     ctx.font = "12px Segoe UI";
-    ctx.fillText(m.name, x, height - 10);
+    ctx.fillText(m.name, x, height - 12);
+    ctx.fillStyle = textColor;
+    ctx.font = "700 13px Segoe UI";
     ctx.fillText(String(m.value), x + 6, y - 8);
   });
 }
@@ -578,6 +659,9 @@ function renderCirculationChart(data) {
 function renderUserChart() {
   const canvas = document.getElementById("userChart");
   const ctx = canvas.getContext("2d");
+  const textColor = cssVar("--text", "#0f172a");
+  const mutedColor = cssVar("--muted", "#64748b");
+  const cardBg = cssVar("--surface-strong", "#ffffff");
 
   const adminCount = state.users.filter(u => u.role === "ADMIN").length;
   const userCount = state.users.filter(u => u.role === "USER").length;
@@ -591,45 +675,45 @@ function renderUserChart() {
   const ring = 28;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = cardBg;
   ctx.fillRect(0, 0, width, height);
 
   const adminRate = adminCount / total;
   const start = -Math.PI / 2;
 
   ctx.lineWidth = ring;
-  ctx.strokeStyle = "#e2e8f0";
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.28)";
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.strokeStyle = "#06B6D4";
+  ctx.strokeStyle = "#06b6d4";
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start, start + Math.PI * 2 * adminRate);
   ctx.stroke();
 
-  ctx.strokeStyle = "#0F172A";
+  ctx.strokeStyle = "#2563eb";
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start + Math.PI * 2 * adminRate, start + Math.PI * 2);
   ctx.stroke();
 
-  ctx.fillStyle = "#0F172A";
+  ctx.fillStyle = textColor;
   ctx.font = "700 24px Segoe UI";
   ctx.textAlign = "center";
   ctx.fillText(String(total), cx, cy + 4);
   ctx.font = "13px Segoe UI";
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = mutedColor;
   ctx.fillText("用户总量", cx, cy + 24);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = "#06B6D4";
+  ctx.fillStyle = "#06b6d4";
   ctx.fillRect(32, height - 46, 12, 12);
-  ctx.fillStyle = "#334155";
+  ctx.fillStyle = mutedColor;
   ctx.fillText(`管理员: ${adminCount}`, 50, height - 36);
 
-  ctx.fillStyle = "#0F172A";
+  ctx.fillStyle = "#2563eb";
   ctx.fillRect(180, height - 46, 12, 12);
-  ctx.fillStyle = "#334155";
+  ctx.fillStyle = mutedColor;
   ctx.fillText(`普通用户: ${userCount}`, 198, height - 36);
 }
 
@@ -679,6 +763,7 @@ async function updateNotificationBadge(statsData = null) {
 }
 
 (async function init() {
+  initThemeToggle();
   const valid = await validateSessionOnStartup();
   if (!valid) {
     window.location.href = "/login.html";

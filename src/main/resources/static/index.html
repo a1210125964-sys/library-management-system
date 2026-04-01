@@ -17,10 +17,10 @@
             </div>
         </div>
         <nav class="nav-menu" id="navMenu">
-            <button class="nav-item active" data-page="dashboard" type="button">管理员仪表盘</button>
-            <button class="nav-item" data-page="books" type="button">图书管理列表</button>
-            <button class="nav-item" data-page="users" type="button">用户管理页</button>
-            <button class="nav-item" data-page="borrows" type="button">借阅记录页</button>
+            <button class="nav-item active" data-page="dashboard" type="button"><span class="nav-ico">📊</span><span>管理员仪表盘</span></button>
+            <button class="nav-item" data-page="books" type="button"><span class="nav-ico">📚</span><span>图书管理列表</span></button>
+            <button class="nav-item" data-page="users" type="button"><span class="nav-ico">👥</span><span>用户管理页</span></button>
+            <button class="nav-item" data-page="borrows" type="button"><span class="nav-ico">🧾</span><span>借阅记录页</span></button>
         </nav>
         <div class="sidebar-foot">
             <span class="role-tag" id="roleTag">未登录</span>
@@ -34,6 +34,7 @@
                 <p class="muted">现代企业级图书馆管理后台</p>
             </div>
             <div class="topbar-actions">
+                <button id="themeToggle" class="icon-btn" type="button" title="切换主题" aria-label="切换深色和浅色模式">🌓</button>
                 <button class="icon-btn" type="button" title="通知">
                     🔔
                     <span id="notifyBadge" class="badge">0</span>
