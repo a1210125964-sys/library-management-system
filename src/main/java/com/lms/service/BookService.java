@@ -4,6 +4,10 @@ import com.lms.dto.BookRequest;
 import com.lms.exception.BusinessException;
 import com.lms.model.Book;
 import com.lms.repository.BookRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +75,18 @@ public class BookService {
         }
         return bookRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCaseOrCategoryContainingIgnoreCase(
             keyword, keyword, keyword, keyword
+        );
+    }
+
+    public Page<Book> listPage(String keyword, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "id"));
+        if (keyword == null || keyword.isBlank()) {
+            return bookRepository.findAll(pageable);
+        }
+        return bookRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCaseOrCategoryContainingIgnoreCase(
+            keyword, keyword, keyword, keyword, pageable
         );
     }
 

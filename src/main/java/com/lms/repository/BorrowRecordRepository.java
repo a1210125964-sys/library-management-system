@@ -4,6 +4,7 @@ import com.lms.model.BorrowRecord;
 import com.lms.model.BorrowStatus;
 import com.lms.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +18,16 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
     long countByUserAndStatus(User user, BorrowStatus status);
     long countByStatusIn(Collection<BorrowStatus> statuses);
     List<BorrowRecord> findByStatusAndDueTimeBefore(BorrowStatus status, LocalDateTime time);
+
+    @Query("select br from BorrowRecord br join fetch br.book where br.user = :user and br.status in :statuses order by br.borrowTime desc")
+    List<BorrowRecord> findByUserAndStatusesWithBook(@Param("user") User user,
+                                                     @Param("statuses") Collection<BorrowStatus> statuses);
+
+    @Modifying
+    @Query("update BorrowRecord br set br.status = :toStatus where br.status = :fromStatus and br.dueTime < :now")
+    int markOverdue(@Param("fromStatus") BorrowStatus fromStatus,
+                    @Param("toStatus") BorrowStatus toStatus,
+                    @Param("now") LocalDateTime now);
 
     @Query(value = """
         select b.id as book_id,

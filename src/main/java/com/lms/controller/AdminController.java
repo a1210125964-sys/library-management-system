@@ -4,12 +4,14 @@ import com.lms.dto.ConfigUpdateRequest;
 import com.lms.dto.ResetPasswordRequest;
 import com.lms.model.AdminOperationLog;
 import com.lms.model.User;
+import com.lms.model.UserRole;
 import com.lms.service.AdminLogService;
 import com.lms.service.AuthService;
 import com.lms.service.StatisticsService;
 import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -75,9 +77,20 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public Map<String, Object> users(@RequestHeader("X-Token") String token) {
+    public Map<String, Object> users(@RequestHeader("X-Token") String token,
+                                     @RequestParam(required = false) String role,
+                                     @RequestParam(required = false) Integer page,
+                                     @RequestParam(required = false) Integer size) {
         authService.requireAdmin(token);
-        List<Map<String, Object>> users = userService.listAllUsers().stream().map(this::userMap).collect(Collectors.toList());
+        UserRole roleFilter = parseRole(role);
+
+        if (page != null && size != null) {
+            Page<User> result = userService.listUsersPaged(roleFilter, page, size);
+            List<Map<String, Object>> users = result.getContent().stream().map(this::userMap).collect(Collectors.toList());
+            return success("查询成功", users, pagination(result));
+        }
+
+        List<Map<String, Object>> users = userService.listAllUsers(roleFilter).stream().map(this::userMap).collect(Collectors.toList());
         return success("查询成功", users);
     }
 
@@ -92,8 +105,17 @@ public class AdminController {
     }
 
     @GetMapping("/logs")
-    public Map<String, Object> logs(@RequestHeader("X-Token") String token) {
+    public Map<String, Object> logs(@RequestHeader("X-Token") String token,
+                                    @RequestParam(required = false) Integer page,
+                                    @RequestParam(required = false) Integer size) {
         authService.requireAdmin(token);
+
+        if (page != null && size != null) {
+            Page<AdminOperationLog> result = adminLogService.recentLogs(page, size);
+            List<Map<String, Object>> data = result.getContent().stream().map(this::logMap).collect(Collectors.toList());
+            return success("查询成功", data, pagination(result));
+        }
+
         List<Map<String, Object>> data = adminLogService.recentLogs().stream().map(this::logMap).collect(Collectors.toList());
         return success("查询成功", data);
     }
@@ -103,6 +125,34 @@ public class AdminController {
         result.put("message", message);
         result.put("data", data);
         return result;
+    }
+
+    private Map<String, Object> success(String message, Object data, Map<String, Object> pagination) {
+        Map<String, Object> result = success(message, data);
+        result.put("pagination", pagination);
+        return result;
+    }
+
+    private Map<String, Object> pagination(Page<?> page) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("page", page.getNumber());
+        map.put("size", page.getSize());
+        map.put("totalElements", page.getTotalElements());
+        map.put("totalPages", page.getTotalPages());
+        map.put("first", page.isFirst());
+        map.put("last", page.isLast());
+        return map;
+    }
+
+    private UserRole parseRole(String role) {
+        if (role == null || role.isBlank()) {
+            return null;
+        }
+        try {
+            return UserRole.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private Map<String, Object> userMap(User user) {

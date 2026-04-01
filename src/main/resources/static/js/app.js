@@ -9,12 +9,19 @@ const state = {
   theme: localStorage.getItem("theme") || "system",
   borrowInventoryPage: 1,
   borrowInventoryPageSize: 5,
+  borrowInventoryTotalPages: 1,
   adminBooks: [],
   adminBookPage: 1,
   adminBookPageSize: 8,
   adminBookSortKey: "id",
   adminBookSortOrder: "asc",
-  adminSelectedBookIds: new Set()
+  adminSelectedBookIds: new Set(),
+  studentPage: 1,
+  studentPageSize: 10,
+  studentTotalPages: 1,
+  adminLogPage: 1,
+  adminLogPageSize: 10,
+  adminLogTotalPages: 1
 };
 
 function setHidden(id, hidden) {
@@ -311,15 +318,32 @@ async function loadBorrowInventoryBooks(resetPage = false) {
   renderTableState("userBookTable", 8, "正在加载库存图书...", "loading");
   try {
     const keyword = (document.getElementById("userBookKeyword")?.value || "").trim();
-    const res = await req(`/api/books${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`);
-    const books = res.data || [];
-    const pageSize = state.borrowInventoryPageSize;
-    const totalPages = Math.max(1, Math.ceil(books.length / pageSize));
-    if (state.borrowInventoryPage > totalPages) {
-      state.borrowInventoryPage = totalPages;
+    const qs = new URLSearchParams();
+    if (keyword) {
+      qs.set("keyword", keyword);
     }
-    const start = (state.borrowInventoryPage - 1) * pageSize;
-    const pagedBooks = books.slice(start, start + pageSize);
+    qs.set("page", String(Math.max(0, state.borrowInventoryPage - 1)));
+    qs.set("size", String(state.borrowInventoryPageSize));
+
+    const res = await req(`/api/books?${qs.toString()}`);
+
+    let pagedBooks = res.data || [];
+    let totalPages = Number(res.pagination?.totalPages || 0);
+
+    // 兼容旧版后端：无 pagination 时，前端本地分页兜底
+    if (!res.pagination) {
+      const books = res.data || [];
+      totalPages = Math.max(1, Math.ceil(books.length / state.borrowInventoryPageSize));
+      if (state.borrowInventoryPage > totalPages) {
+        state.borrowInventoryPage = totalPages;
+      }
+      const start = (state.borrowInventoryPage - 1) * state.borrowInventoryPageSize;
+      pagedBooks = books.slice(start, start + state.borrowInventoryPageSize);
+    } else {
+      totalPages = Math.max(1, totalPages || 1);
+      state.borrowInventoryPage = (Number(res.pagination.page || 0) + 1);
+    }
+    state.borrowInventoryTotalPages = totalPages;
 
     const tbody = document.getElementById("userBookTable");
     tbody.innerHTML = pagedBooks.length ? pagedBooks.map(b => `
@@ -339,13 +363,13 @@ async function loadBorrowInventoryBooks(resetPage = false) {
     const prevBtn = document.getElementById("userBookPrevPage");
     const nextBtn = document.getElementById("userBookNextPage");
     if (pageInfo) {
-      pageInfo.textContent = `第 ${state.borrowInventoryPage} / ${totalPages} 页`;
+      pageInfo.textContent = `第 ${state.borrowInventoryPage} / ${state.borrowInventoryTotalPages} 页`;
     }
     if (prevBtn) {
       prevBtn.disabled = state.borrowInventoryPage <= 1;
     }
     if (nextBtn) {
-      nextBtn.disabled = state.borrowInventoryPage >= totalPages;
+      nextBtn.disabled = state.borrowInventoryPage >= state.borrowInventoryTotalPages;
     }
   } catch (e) {
     renderTableState("userBookTable", 8, "库存图书加载失败", "error");
@@ -355,7 +379,7 @@ async function loadBorrowInventoryBooks(resetPage = false) {
 
 function changeBorrowInventoryPage(step) {
   const nextPage = state.borrowInventoryPage + step;
-  if (nextPage < 1) {
+  if (nextPage < 1 || nextPage > state.borrowInventoryTotalPages) {
     return;
   }
   state.borrowInventoryPage = nextPage;
@@ -882,7 +906,11 @@ async function loadAdminLogs() {
   }
   renderTableState("adminLogTable", 5, "正在加载操作记录...", "loading");
   try {
-    const res = await req("/api/admin/logs");
+    const qs = new URLSearchParams({
+      page: String(Math.max(0, state.adminLogPage - 1)),
+      size: String(state.adminLogPageSize)
+    });
+    const res = await req(`/api/admin/logs?${qs.toString()}`);
     const rows = res.data || [];
     const tbody = document.getElementById("adminLogTable");
     tbody.innerHTML = rows.length ? rows.map(r => `
@@ -894,10 +922,35 @@ async function loadAdminLogs() {
         <td>${r.createdAt || ""}</td>
       </tr>
     `).join("") : `<tr class="status-row status-empty"><td colspan="5">暂无操作日志</td></tr>`;
+
+    state.adminLogTotalPages = Math.max(1, Number(res.pagination?.totalPages || 1));
+    state.adminLogPage = Number(res.pagination?.page || (state.adminLogPage - 1)) + 1;
+
+    const pageInfo = document.getElementById("adminLogPageInfo");
+    const prev = document.getElementById("adminLogPrev");
+    const next = document.getElementById("adminLogNext");
+    if (pageInfo) {
+      pageInfo.textContent = `第 ${state.adminLogPage} / ${state.adminLogTotalPages} 页`;
+    }
+    if (prev) {
+      prev.disabled = state.adminLogPage <= 1;
+    }
+    if (next) {
+      next.disabled = state.adminLogPage >= state.adminLogTotalPages;
+    }
   } catch (e) {
     renderTableState("adminLogTable", 5, "操作记录加载失败", "error");
     show(e.message);
   }
+}
+
+function changeAdminLogPage(step) {
+  const next = state.adminLogPage + step;
+  if (next < 1 || next > state.adminLogTotalPages) {
+    return;
+  }
+  state.adminLogPage = next;
+  loadAdminLogs();
 }
 
 function jumpAdminBookPage() {
@@ -1095,8 +1148,13 @@ async function loadStudentUsers() {
   }
   renderTableState("studentTable", 7, "正在加载学生列表...", "loading");
   try {
-    const res = await req("/api/admin/users");
-    const students = (res.data || []).filter(u => u.role === "USER");
+    const qs = new URLSearchParams({
+      role: "USER",
+      page: String(Math.max(0, state.studentPage - 1)),
+      size: String(state.studentPageSize)
+    });
+    const res = await req(`/api/admin/users?${qs.toString()}`);
+    const students = res.data || [];
     const tbody = document.getElementById("studentTable");
     tbody.innerHTML = students.length ? students.map(u => `
       <tr>
@@ -1109,10 +1167,35 @@ async function loadStudentUsers() {
         <td><button onclick='resetUserPassword(${u.id}, ${JSON.stringify(u.username || "")})'>重置密码</button></td>
       </tr>
     `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无学生数据</td></tr>`;
+
+    state.studentTotalPages = Math.max(1, Number(res.pagination?.totalPages || 1));
+    state.studentPage = Number(res.pagination?.page || (state.studentPage - 1)) + 1;
+
+    const pageInfo = document.getElementById("studentPageInfo");
+    const prev = document.getElementById("studentPrevPage");
+    const next = document.getElementById("studentNextPage");
+    if (pageInfo) {
+      pageInfo.textContent = `第 ${state.studentPage} / ${state.studentTotalPages} 页`;
+    }
+    if (prev) {
+      prev.disabled = state.studentPage <= 1;
+    }
+    if (next) {
+      next.disabled = state.studentPage >= state.studentTotalPages;
+    }
   } catch (e) {
     renderTableState("studentTable", 7, "学生列表加载失败", "error");
     show(e.message);
   }
+}
+
+function changeStudentPage(step) {
+  const next = state.studentPage + step;
+  if (next < 1 || next > state.studentTotalPages) {
+    return;
+  }
+  state.studentPage = next;
+  loadStudentUsers();
 }
 
 async function loadAdminUsers() {

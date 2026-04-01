@@ -108,23 +108,18 @@ public class BorrowService {
 
     @Transactional
     public int markOverdueRecords() {
-        List<BorrowRecord> records = borrowRecordRepository.findByStatusAndDueTimeBefore(BorrowStatus.BORROWED, LocalDateTime.now());
-        for (BorrowRecord record : records) {
-            record.setStatus(BorrowStatus.OVERDUE);
-            borrowRecordRepository.save(record);
-        }
-        return records.size();
+        return borrowRecordRepository.markOverdue(BorrowStatus.BORROWED, BorrowStatus.OVERDUE, LocalDateTime.now());
     }
 
     public List<BorrowRecord> myRecords(User user) {
-        return borrowRecordRepository.findByUserAndStatusInOrderByBorrowTimeDesc(
+        return borrowRecordRepository.findByUserAndStatusesWithBook(
             user,
             List.of(BorrowStatus.BORROWED, BorrowStatus.OVERDUE)
         );
     }
 
     public List<OverdueRecord> myOverdueRecords(User user) {
-        return overdueRecordRepository.findByUserOrderByCreatedAtDesc(user);
+        return overdueRecordRepository.findByUserWithDetails(user);
     }
 
     private BorrowRecord findOwnedRecord(User user, Long recordId) {

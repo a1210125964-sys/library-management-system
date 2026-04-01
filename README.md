@@ -24,12 +24,39 @@
 CREATE DATABASE library_management DEFAULT CHARSET utf8mb4;
 ```
 
-2. 修改配置文件 [src/main/resources/application.properties](src/main/resources/application.properties) 中的 MySQL 用户名和密码。
+2. 配置数据库环境变量（推荐）：
+
+```bash
+DB_USERNAME=root
+DB_PASSWORD=你的密码
+```
+
+Windows PowerShell：
+
+```powershell
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="你的密码"
+```
+
+Windows CMD：
+
+```cmd
+set DB_USERNAME=root
+set DB_PASSWORD=你的密码
+```
+
+也可直接调整 [src/main/resources/application.properties](src/main/resources/application.properties) 中的默认值。
 
 3. 在项目根目录执行：
 
 ```bash
 mvn spring-boot:run
+```
+
+PowerShell 也可一行启动：
+
+```powershell
+$env:DB_USERNAME="root"; $env:DB_PASSWORD="你的密码"; mvn spring-boot:run
 ```
 
 4. 打开：
@@ -54,7 +81,7 @@ http://localhost:8080
   - `PUT /api/users/me`
   - `POST /api/users/me/change-password`
 - 图书
-  - `GET /api/books`
+  - `GET /api/books`（支持 `keyword`；支持分页参数 `page` 从 0 开始、`size`）
   - `POST /api/books`（管理员）
   - `PUT /api/books/{id}`（管理员）
   - `DELETE /api/books/{id}`（管理员）
@@ -74,8 +101,18 @@ http://localhost:8080
   - `GET /api/admin/stats`
   - `GET /api/admin/configs`
   - `PUT /api/admin/configs`
-  - `GET /api/admin/users`
-  - `GET /api/admin/logs`
+  - `GET /api/admin/users`（支持 `role=USER|ADMIN`；支持分页参数 `page`、`size`）
+  - `GET /api/admin/logs`（支持分页参数 `page`、`size`）
   - `POST /api/admin/users/{id}/reset-password`
 
 除公开接口外，请在 Header 中带上：`X-Token: <登录返回token>`
+
+分页请求时，响应中会额外返回 `pagination` 字段；不传分页参数时保持原有返回格式（兼容旧前端）。
+
+## 5. 安全与配置说明
+
+- 认证采用 `X-Token`，默认有效期 12 小时（`app.auth.token-expire-hours`）。
+- 未登录访问受保护接口返回 401，越权访问返回 403。
+- 推荐生产环境设置：
+  - `JPA_DDL_AUTO=validate`
+  - `SQL_INIT_MODE=never`

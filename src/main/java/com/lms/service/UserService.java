@@ -6,6 +6,9 @@ import com.lms.exception.BusinessException;
 import com.lms.model.User;
 import com.lms.model.UserRole;
 import com.lms.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +66,23 @@ public class UserService {
 
     public List<User> listAllUsers() {
         return userRepository.findAll();
+    }
+
+    public List<User> listAllUsers(UserRole role) {
+        if (role == null) {
+            return userRepository.findAll();
+        }
+        return userRepository.findAll().stream().filter(u -> u.getRole() == role).toList();
+    }
+
+    public Page<User> listUsersPaged(UserRole role, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        if (role == null) {
+            return userRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+        return userRepository.findByRoleOrderByCreatedAtDesc(role, pageable);
     }
 
     @Transactional

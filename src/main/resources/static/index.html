@@ -130,6 +130,11 @@
                         <tbody id="studentTable"></tbody>
                     </table>
                 </div>
+                <div class="row compact">
+                    <button id="studentPrevPage" class="btn btn-secondary" type="button" onclick="changeStudentPage(-1)">上一页</button>
+                    <span id="studentPageInfo" class="muted">第 1 / 1 页</span>
+                    <button id="studentNextPage" class="btn btn-secondary" type="button" onclick="changeStudentPage(1)">下一页</button>
+                </div>
             </article>
         </section>
 
@@ -218,7 +223,7 @@
 
                 <div id="adminLogPanel" class="collapse-panel hidden">
                     <div class="panel-head">
-                        <h3>操作记录（最近 50 条）</h3>
+                        <h3>操作记录</h3>
                         <button class="btn btn-secondary" type="button" onclick="loadAdminLogs()">刷新记录</button>
                     </div>
                     <div class="table-wrap">
@@ -230,6 +235,11 @@
                             </thead>
                             <tbody id="adminLogTable"></tbody>
                         </table>
+                    </div>
+                    <div class="row compact">
+                        <button id="adminLogPrev" class="btn btn-secondary" type="button" onclick="changeAdminLogPage(-1)">上一页</button>
+                        <span id="adminLogPageInfo" class="muted">第 1 / 1 页</span>
+                        <button id="adminLogNext" class="btn btn-secondary" type="button" onclick="changeAdminLogPage(1)">下一页</button>
                     </div>
                 </div>
 

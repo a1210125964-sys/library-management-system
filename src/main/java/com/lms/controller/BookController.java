@@ -7,6 +7,7 @@ import com.lms.service.AdminLogService;
 import com.lms.service.AuthService;
 import com.lms.service.BookService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -29,7 +30,14 @@ public class BookController {
     }
 
     @GetMapping
-    public Map<String, Object> list(@RequestParam(required = false) String keyword) {
+    public Map<String, Object> list(@RequestParam(required = false) String keyword,
+                                    @RequestParam(required = false) Integer page,
+                                    @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            Page<Book> result = bookService.listPage(keyword, page, size);
+            List<Map<String, Object>> data = result.getContent().stream().map(this::bookMap).collect(Collectors.toList());
+            return success("查询成功", data, pagination(result));
+        }
         List<Map<String, Object>> data = bookService.list(keyword).stream().map(this::bookMap).collect(Collectors.toList());
         return success("查询成功", data);
     }
@@ -65,6 +73,23 @@ public class BookController {
         result.put("message", message);
         result.put("data", data);
         return result;
+    }
+
+    private Map<String, Object> success(String message, Object data, Map<String, Object> pagination) {
+        Map<String, Object> result = success(message, data);
+        result.put("pagination", pagination);
+        return result;
+    }
+
+    private Map<String, Object> pagination(Page<?> page) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("page", page.getNumber());
+        map.put("size", page.getSize());
+        map.put("totalElements", page.getTotalElements());
+        map.put("totalPages", page.getTotalPages());
+        map.put("first", page.isFirst());
+        map.put("last", page.isLast());
+        return map;
     }
 
     private Map<String, Object> bookMap(Book book) {
