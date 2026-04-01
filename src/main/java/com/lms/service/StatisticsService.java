@@ -7,6 +7,7 @@ import com.lms.repository.OverdueRecordRepository;
 import com.lms.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class StatisticsService {
         map.put("bookCount", bookRepository.count());
         map.put("borrowCount", borrowRecordRepository.count());
         map.put("overdueRecordCount", overdueRecordRepository.count());
-        map.put("activeBorrowCount", borrowRecordRepository.findByStatusAndDueTimeBefore(BorrowStatus.BORROWED, java.time.LocalDateTime.MAX).size());
+        map.put("activeBorrowCount", borrowRecordRepository.countByStatusIn(List.of(BorrowStatus.BORROWED, BorrowStatus.OVERDUE)));
         return map;
     }
 }

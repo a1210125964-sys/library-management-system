@@ -39,8 +39,10 @@ async function register() {
   try {
     const username = document.getElementById("username").value.trim();
     const realName = document.getElementById("realName").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const idCard = document.getElementById("idCard").value.trim();
     const password = document.getElementById("password").value.trim();
-    await req("/api/auth/register", "POST", { username, realName, password });
+    await req("/api/auth/register", "POST", { username, realName, phone, idCard, password });
     show("注册成功，正在跳转登录");
     setTimeout(() => {
       window.location.href = "/login.html";

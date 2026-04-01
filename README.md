@@ -57,6 +57,11 @@ http://localhost:8080
   - `POST /api/books`（管理员）
   - `PUT /api/books/{id}`（管理员）
   - `DELETE /api/books/{id}`（管理员）
+- 图书分类
+  - `GET /api/book-categories`
+  - `POST /api/book-categories`（管理员）
+  - `PUT /api/book-categories/{id}`（管理员）
+  - `DELETE /api/book-categories/{id}`（管理员）
 - 借阅
   - `POST /api/borrow/{bookId}`
   - `POST /api/borrow/renew/{recordId}`
@@ -68,5 +73,7 @@ http://localhost:8080
   - `GET /api/admin/stats`
   - `GET /api/admin/configs`
   - `PUT /api/admin/configs`
+  - `GET /api/admin/users`
+  - `POST /api/admin/users/{id}/reset-password`
 
 除公开接口外，请在 Header 中带上：`X-Token: <登录返回token>`

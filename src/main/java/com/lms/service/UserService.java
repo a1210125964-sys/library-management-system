@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -58,5 +59,16 @@ public class UserService {
 
     public User findById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new BusinessException("用户不存在"));
+    }
+
+    public List<User> listAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Transactional
+    public User resetPassword(Long userId, String newPassword) {
+        User user = findById(userId);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
     }
 }

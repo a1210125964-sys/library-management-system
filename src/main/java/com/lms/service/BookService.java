@@ -14,9 +14,11 @@ import java.util.List;
 public class BookService {
 
     private final BookRepository bookRepository;
+    private final BookCategoryService bookCategoryService;
 
-    public BookService(BookRepository bookRepository) {
+    public BookService(BookRepository bookRepository, BookCategoryService bookCategoryService) {
         this.bookRepository = bookRepository;
+        this.bookCategoryService = bookCategoryService;
     }
 
     @Transactional
@@ -77,7 +79,12 @@ public class BookService {
         book.setAuthor(req.getAuthor());
         book.setPublisher(req.getPublisher());
         book.setIsbn(req.getIsbn());
-        book.setCategory(req.getCategory());
+        String category = req.getCategory() == null ? "" : req.getCategory().trim();
+        if (category.isBlank()) {
+            throw new BusinessException("图书分类不能为空");
+        }
+        bookCategoryService.ensureExists(category);
+        book.setCategory(category);
         book.setStock(req.getStock());
     }
 }

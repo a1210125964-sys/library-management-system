@@ -4,6 +4,7 @@ import com.lms.model.Book;
 import com.lms.model.UserRole;
 import com.lms.repository.BookRepository;
 import com.lms.repository.UserRepository;
+import com.lms.service.BookCategoryService;
 import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
 import com.lms.dto.RegisterRequest;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -21,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final UserService userService;
+    private final BookCategoryService bookCategoryService;
 
     @Value("${app.borrow.default-days:30}")
     private int defaultBorrowDays;
@@ -34,11 +37,13 @@ public class DataInitializer implements CommandLineRunner {
     public DataInitializer(SystemConfigService systemConfigService,
                            UserRepository userRepository,
                            BookRepository bookRepository,
-                           UserService userService) {
+                           UserService userService,
+                           BookCategoryService bookCategoryService) {
         this.systemConfigService = systemConfigService;
         this.userRepository = userRepository;
         this.bookRepository = bookRepository;
         this.userService = userService;
+        this.bookCategoryService = bookCategoryService;
     }
 
     @Override
@@ -56,6 +61,7 @@ public class DataInitializer implements CommandLineRunner {
 
         if (bookRepository.count() == 0) {
             LocalDateTime now = LocalDateTime.now();
+            bookCategoryService.initIfMissing(List.of("编程", "计算机基础", "数据库", "算法", "软件工程", "前端"));
             List<Book> books = List.of(
                 buildBook("Java 核心技术（卷 I）", "Cay S. Horstmann", "机械工业出版社", "9787111213826", "编程", 10, now),
                 buildBook("深入理解计算机系统", "Randal E. Bryant", "机械工业出版社", "9787111544937", "计算机基础", 8, now),
@@ -68,6 +74,10 @@ public class DataInitializer implements CommandLineRunner {
             );
             bookRepository.saveAll(books);
         }
+
+        bookCategoryService.initIfMissing(bookRepository.findAll().stream()
+            .map(Book::getCategory)
+            .collect(Collectors.toList()));
     }
 
     private Book buildBook(String title,

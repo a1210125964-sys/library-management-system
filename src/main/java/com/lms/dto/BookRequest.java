@@ -2,6 +2,7 @@ package com.lms.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class BookRequest {
     @NotBlank
@@ -15,8 +16,10 @@ public class BookRequest {
     @NotBlank
     private String isbn;
 
+    @NotBlank
     private String category;
 
+    @NotNull
     @Min(0)
     private Integer stock;
 
