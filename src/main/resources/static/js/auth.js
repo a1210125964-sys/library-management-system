@@ -1,0 +1,67 @@
+const state = {
+  token: localStorage.getItem("token") || "",
+  user: JSON.parse(localStorage.getItem("user") || "null")
+};
+
+function show(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.style.opacity = "1";
+  setTimeout(() => toast.style.opacity = "0", 1800);
+}
+
+async function req(url, method = "GET", body = null) {
+  const headers = { "Content-Type": "application/json" };
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : null
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "请求失败");
+  return data;
+}
+
+async function login() {
+  try {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const res = await req("/api/auth/login", "POST", { username, password });
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data));
+    window.location.href = "/";
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function register() {
+  try {
+    const username = document.getElementById("username").value.trim();
+    const realName = document.getElementById("realName").value.trim();
+    const password = document.getElementById("password").value.trim();
+    await req("/api/auth/register", "POST", { username, realName, password });
+    show("注册成功，正在跳转登录");
+    setTimeout(() => {
+      window.location.href = "/login.html";
+    }, 700);
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function validateSession() {
+  if (!state.token || !state.user) return false;
+  const headers = { "Content-Type": "application/json", "X-Token": state.token };
+  const res = await fetch("/api/users/me", { headers });
+  if (!res.ok) return false;
+  return true;
+}
+
+(async function init() {
+  const page = window.location.pathname;
+  if (page === "/login.html" || page === "/register.html") {
+    const valid = await validateSession();
+    if (valid) window.location.href = "/";
+  }
+})();

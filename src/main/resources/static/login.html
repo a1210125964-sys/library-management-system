@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图书管理系统 - 登录</title>
+    <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<main class="auth-layout">
+    <section class="brand-panel">
+        <h1>图书管理系统</h1>
+        <p>安全、稳定、易维护的图书借阅管理平台</p>
+        <ul>
+            <li>图书检索与库存管理</li>
+            <li>借阅 / 归还 / 续借流程</li>
+            <li>逾期统计与管理配置</li>
+        </ul>
+    </section>
+
+    <section class="auth-card">
+        <h2>账号登录</h2>
+        <p class="muted">请输入用户名和密码</p>
+
+        <label for="username">用户名</label>
+        <input id="username" placeholder="请输入用户名" autocomplete="username" />
+
+        <label for="password">密码</label>
+        <input id="password" type="password" placeholder="请输入密码" autocomplete="current-password" />
+
+        <button class="btn" onclick="login()">登录</button>
+
+        <p class="tip">还没有账号？<a href="/register.html">去注册</a></p>
+    </section>
+</main>
+
+<div id="toast" aria-live="polite"></div>
+<script src="/js/auth.js"></script>
+</body>
+</html>
