@@ -589,8 +589,8 @@ function renderCirculationChart(data) {
   const lineColor = cssVar("--line-strong", "rgba(15, 23, 42, 0.16)");
   const cardBg = cssVar("--surface-strong", "#ffffff");
   const metrics = [
-    { name: "借阅总量", value: data.borrowCount || 0, start: "#2563eb", end: "#1d4ed8" },
-    { name: "在借数量", value: data.activeBorrowCount || 0, start: "#06b6d4", end: "#0891b2" },
+    { name: "借阅总量", value: data.borrowCount || 0, start: "#0ea5e9", end: "#0284c7" },
+    { name: "在借数量", value: data.activeBorrowCount || 0, start: "#10b981", end: "#059669" },
     { name: "逾期记录", value: data.overdueRecordCount || 0, start: "#f59e0b", end: "#d97706" }
   ];
 
@@ -687,12 +687,12 @@ function renderUserChart() {
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.strokeStyle = "#06b6d4";
+  ctx.strokeStyle = "#0ea5e9";
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start, start + Math.PI * 2 * adminRate);
   ctx.stroke();
 
-  ctx.strokeStyle = "#2563eb";
+  ctx.strokeStyle = "#64748b";
   ctx.beginPath();
   ctx.arc(cx, cy, radius, start + Math.PI * 2 * adminRate, start + Math.PI * 2);
   ctx.stroke();
@@ -706,12 +706,12 @@ function renderUserChart() {
   ctx.fillText("用户总量", cx, cy + 24);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = "#06b6d4";
+  ctx.fillStyle = "#0ea5e9";
   ctx.fillRect(32, height - 46, 12, 12);
   ctx.fillStyle = mutedColor;
   ctx.fillText(`管理员: ${adminCount}`, 50, height - 36);
 
-  ctx.fillStyle = "#2563eb";
+  ctx.fillStyle = "#64748b";
   ctx.fillRect(180, height - 46, 12, 12);
   ctx.fillStyle = mutedColor;
   ctx.fillText(`普通用户: ${userCount}`, 198, height - 36);

@@ -1,24 +1,24 @@
 :root {
-  --primary-600: #1d4ed8;
-  --primary-500: #2563eb;
-  --accent-500: #06b6d4;
-  --danger-500: #e11d48;
-  --success-500: #16a34a;
+  --primary-600: #0284c7;
+  --primary-500: #0ea5e9;
+  --accent-500: #0ea5e9;
+  --danger-500: #ef4444;
+  --success-500: #10b981;
   --warning-500: #f59e0b;
-  --bg: #f5f8ff;
-  --surface: rgba(255, 255, 255, 0.74);
-  --surface-strong: rgba(255, 255, 255, 0.92);
-  --surface-soft: rgba(255, 255, 255, 0.58);
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-soft: #f8fafc;
   --text: #0f172a;
   --muted: #64748b;
-  --line: rgba(15, 23, 42, 0.1);
-  --line-strong: rgba(15, 23, 42, 0.16);
-  --shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
-  --focus-ring: rgba(37, 99, 235, 0.28);
-  --sidebar-bg-1: #0f1f4c;
-  --sidebar-bg-2: #1d2a56;
-  --sidebar-text: #e2e8f0;
-  --sidebar-muted: #94a3b8;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --focus-ring: rgba(14, 165, 233, 0.22);
+  --sidebar-bg-1: #f8fafc;
+  --sidebar-bg-2: #f8fafc;
+  --sidebar-text: #1e293b;
+  --sidebar-muted: #1e293b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,10 +32,10 @@
     --line: rgba(148, 163, 184, 0.24);
     --line-strong: rgba(148, 163, 184, 0.38);
     --shadow: 0 14px 34px rgba(2, 6, 23, 0.52);
-    --sidebar-bg-1: #070f24;
-    --sidebar-bg-2: #111d3d;
-    --sidebar-text: #dbeafe;
-    --sidebar-muted: #93c5fd;
+    --sidebar-bg-1: #f8fafc;
+    --sidebar-bg-2: #f8fafc;
+    --sidebar-text: #1e293b;
+    --sidebar-muted: #1e293b;
   }
 }
 
@@ -71,10 +71,7 @@ body {
   font-family: "Inter", "Segoe UI", "Microsoft YaHei", sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  background:
-    radial-gradient(1000px 520px at 8% -10%, rgba(37, 99, 235, 0.2), transparent 60%),
-    radial-gradient(920px 480px at 104% -2%, rgba(6, 182, 212, 0.18), transparent 62%),
-    var(--bg);
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -89,8 +86,8 @@ body {
   top: 0;
   height: 100vh;
   padding: 24px 18px;
-  border-right: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, var(--sidebar-bg-1), var(--sidebar-bg-2));
+  border-right: 1px solid #e2e8f0;
+  background: var(--sidebar-bg-1);
   color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
@@ -108,19 +105,19 @@ body {
   height: 14px;
   border-radius: 50%;
   background: var(--accent-500);
-  box-shadow: 0 0 0 6px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 0 6px rgba(14, 165, 233, 0.18);
 }
 
 .brand h1 {
   margin: 0;
   font-size: 18px;
-  color: #f8fbff;
+  color: #1e293b;
 }
 
 .brand p {
   margin: 3px 0 0;
   font-size: 12px;
-  color: var(--sidebar-muted);
+  color: #1e293b;
 }
 
 .nav-menu {
@@ -131,9 +128,9 @@ body {
 
 .nav-item {
   text-align: left;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(15, 23, 42, 0.25);
-  color: #dbeafe;
+  border: 1px solid #e2e8f0;
+  background: transparent;
+  color: #1e293b;
   border-radius: 12px;
   padding: 11px 12px;
   cursor: pointer;
@@ -151,21 +148,28 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 182, 212, 0.16);
-  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
   font-size: 13px;
 }
 
 .nav-item:hover {
-  border-color: rgba(96, 165, 250, 0.55);
+  border-color: #dbeafe;
   transform: translateX(2px);
-  background: rgba(30, 41, 59, 0.62);
+  background: #eff6ff;
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.3), rgba(6, 182, 212, 0.22));
-  color: #f0f9ff;
-  border-color: rgba(96, 165, 250, 0.58);
+  background: rgba(14, 165, 233, 0.12);
+  color: #0ea5e9;
+  border-color: rgba(14, 165, 233, 0.35);
+}
+
+.nav-item.active .nav-ico {
+  border-color: rgba(14, 165, 233, 0.35);
+  color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.08);
 }
 
 .sidebar-foot { margin-top: auto; }
@@ -174,8 +178,9 @@ body {
   display: inline-flex;
   padding: 7px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #bfdbfe;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  background: #ffffff;
   font-size: 12px;
 }
 
@@ -187,10 +192,9 @@ body {
 
 .glass-card {
   background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.52);
+  border: 1px solid var(--line);
   box-shadow: var(--shadow);
   border-radius: 16px;
-  backdrop-filter: blur(14px);
 }
 
 .topbar {
@@ -235,7 +239,8 @@ body {
 
 .icon-btn:hover {
   transform: translateY(-1px);
-  border-color: rgba(37, 99, 235, 0.4);
+  border-color: var(--line-strong);
+  background: #f8fafc;
 }
 
 .badge {
@@ -246,7 +251,7 @@ body {
   height: 18px;
   border-radius: 999px;
   background: var(--accent-500);
-  color: #042f2e;
+  color: #ffffff;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -265,20 +270,21 @@ body {
 }
 
 .btn {
-  border: none;
+  border: 1px solid var(--primary-500);
   border-radius: 10px;
   padding: 10px 14px;
-  background: linear-gradient(100deg, var(--primary-600), var(--accent-500));
+  background: var(--primary-500);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  transition: transform .16s ease, box-shadow .2s ease, filter .2s ease;
+  transition: transform .16s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
 }
 
 .btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.28);
-  filter: saturate(1.06);
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.22);
+  background: var(--primary-600);
+  border-color: var(--primary-600);
 }
 
 .btn:active {
@@ -286,11 +292,25 @@ body {
 }
 
 .btn-secondary {
-  background: linear-gradient(100deg, #475569, #64748b);
+  background: #f1f5f9;
+  color: var(--primary-500);
+  border-color: #e2e8f0;
 }
 
 .btn-danger {
-  background: linear-gradient(100deg, #be123c, var(--danger-500));
+  background: var(--danger-500);
+  border-color: var(--danger-500);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: var(--primary-600);
 }
 
 .panel {
@@ -363,7 +383,7 @@ h3 {
   top: 0;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, var(--primary-500), var(--accent-500));
+  background: var(--primary-500);
 }
 
 .stat-card .name {
@@ -375,7 +395,7 @@ h3 {
   margin-top: 5px;
   font-size: 28px;
   font-weight: 750;
-  color: var(--text);
+  color: var(--primary-500);
   line-height: 1.2;
 }
 
@@ -404,9 +424,14 @@ h3 {
   transition: border-color .2s ease, box-shadow .2s ease, transform .16s ease;
 }
 
+.field input:hover,
+.field select:hover {
+  border-color: var(--line-strong);
+}
+
 .field input:focus,
 .field select:focus {
-  border-color: rgba(37, 99, 235, 0.6);
+  border-color: var(--primary-500);
   box-shadow: 0 0 0 3px var(--focus-ring);
   transform: translateY(-1px);
 }
@@ -436,7 +461,7 @@ h3 {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--surface-soft);
+  background: #ffffff;
 }
 
 .split-tables {
@@ -454,9 +479,10 @@ table {
 thead th {
   text-align: left;
   padding: 12px 10px;
-  background: rgba(15, 23, 42, 0.86);
-  color: #e2e8f0;
+  background: #f8fafc;
+  color: var(--text);
   font-weight: 600;
+  border-bottom: 1px solid var(--line);
 }
 
 td {
@@ -469,17 +495,22 @@ td {
 tbody tr { transition: background .16s ease; }
 
 tbody tr:hover {
-  background: rgba(37, 99, 235, 0.08);
+  background: #f0f9ff;
 }
 
 td button {
-  border: none;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 6px 10px;
   margin-right: 6px;
-  color: #fff;
-  background: linear-gradient(90deg, #334155, #475569);
+  color: var(--primary-500);
+  background: #f1f5f9;
   cursor: pointer;
+}
+
+td button:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
 }
 
 .status-row td {
@@ -519,8 +550,8 @@ td button {
   right: 20px;
   bottom: 20px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--line);
+  background: #0f172a;
   color: #f8fafc;
   padding: 10px 14px;
   opacity: 0;
@@ -530,12 +561,17 @@ td button {
 
 .hidden { display: none !important; }
 
+.topbar {
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 .nav-item:focus-visible,
 .icon-btn:focus-visible {
-  outline: 2px solid rgba(96, 165, 250, 0.88);
+  outline: 2px solid rgba(14, 165, 233, 0.72);
   outline-offset: 2px;
 }
 
