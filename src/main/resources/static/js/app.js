@@ -6,7 +6,15 @@ const state = {
   editingBookId: null,
   editingCategoryId: null,
   activePage: "borrowQuery",
-  theme: localStorage.getItem("theme") || "system"
+  theme: localStorage.getItem("theme") || "system",
+  borrowInventoryPage: 1,
+  borrowInventoryPageSize: 5,
+  adminBooks: [],
+  adminBookPage: 1,
+  adminBookPageSize: 8,
+  adminBookSortKey: "id",
+  adminBookSortOrder: "asc",
+  adminSelectedBookIds: new Set()
 };
 
 function setHidden(id, hidden) {
@@ -45,6 +53,16 @@ function initThemeToggle() {
     return;
   }
   btn.addEventListener("click", cycleTheme);
+}
+
+function initSidebarToggle() {
+  const btn = document.getElementById("sidebarToggle");
+  if (!btn) {
+    return;
+  }
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("sidebar-collapsed");
+  });
 }
 
 function renderTableState(tbodyId, colspan, message, type = "empty") {
@@ -104,12 +122,15 @@ function switchPage(page) {
     returnBook: "图书归还",
     studentManage: "学生信息管理",
     bookManage: "图书管理",
-    bookQuery: "图书查询",
     addBook: "添加图书",
     changePassword: "修改密码",
     addAdmin: "添加管理员"
   };
   document.getElementById("pageTitle").textContent = titles[page] || "管理后台";
+  const breadcrumb = document.getElementById("breadcrumb");
+  if (breadcrumb) {
+    breadcrumb.textContent = `首页 > ${titles[page] || "管理后台"}`;
+  }
 
   document.querySelectorAll(".page-section").forEach(el => el.classList.add("hidden"));
   document.getElementById(`${page}Page`).classList.remove("hidden");
@@ -127,7 +148,7 @@ function initNav() {
       return;
     }
     const page = target.dataset.page;
-    const adminPages = ["studentManage", "bookManage", "bookQuery", "addBook", "changePassword", "addAdmin"];
+    const adminPages = ["studentManage", "bookManage", "addBook", "changePassword", "addAdmin"];
     const userPages = ["borrowQuery", "returnBook"];
     if (!isAdmin() && adminPages.includes(page)) {
       show("仅管理员可访问该模块");
@@ -164,6 +185,7 @@ function refreshUI() {
 async function loadPageData(page) {
   if (page === "borrowQuery") {
     await loadBorrowQueryRecords();
+    await loadBorrowInventoryBooks(true);
     return;
   }
   if (page === "returnBook") {
@@ -178,9 +200,6 @@ async function loadPageData(page) {
   } else if (page === "bookManage") {
     await loadCategories();
     await loadAdminBooks();
-  } else if (page === "bookQuery") {
-    await loadCategories();
-    await loadBooks();
   } else if (page === "addBook") {
     await loadCategories();
     syncCategoryOptionsToAddBook();
@@ -207,10 +226,20 @@ async function validateSessionOnStartup() {
 
 function fillCategoryOptions(categories) {
   const filter = document.getElementById("categoryFilter");
+  const adminFilter = document.getElementById("adminCategoryFilter");
+  const batchCategory = document.getElementById("batchCategory");
   const bookCategory = document.getElementById("bookCategory");
   const addBookCategory = document.getElementById("addBookCategory");
   if (filter) {
     filter.innerHTML = `<option value="">全部分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+  }
+  if (adminFilter) {
+    const quick = ["编程", "数据库", "算法"];
+    const merged = [...quick, ...categories.map(c => c.name).filter(name => !quick.includes(name))];
+    adminFilter.innerHTML = `<option value="">全部分类</option>${merged.map(name => `<option value="${name}">${name}</option>`).join("")}`;
+  }
+  if (batchCategory) {
+    batchCategory.innerHTML = `<option value="">批量改为分类...</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
   }
   if (bookCategory) {
     bookCategory.innerHTML = `<option value="">请选择分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
@@ -218,6 +247,25 @@ function fillCategoryOptions(categories) {
   if (addBookCategory) {
     addBookCategory.innerHTML = `<option value="">请选择分类</option>${categories.map(c => `<option value="${c.name}">${c.name}</option>`).join("")}`;
   }
+  renderAdminCategoryQuickEntries();
+}
+
+function renderAdminCategoryQuickEntries() {
+  const quickWrap = document.getElementById("adminCategoryQuick");
+  if (!quickWrap) {
+    return;
+  }
+  const entries = ["全部", "编程", "数据库", "算法"];
+  quickWrap.innerHTML = entries.map(name => `<button class="btn btn-secondary quick-chip" type="button" onclick="applyQuickCategory('${name === "全部" ? "" : name}')">${name}</button>`).join("");
+}
+
+function applyQuickCategory(categoryName) {
+  const filter = document.getElementById("adminCategoryFilter");
+  if (filter) {
+    filter.value = categoryName;
+  }
+  state.adminBookPage = 1;
+  renderAdminBookTable();
 }
 
 function syncCategoryOptionsToAddBook() {
@@ -235,7 +283,7 @@ async function loadBorrowQueryRecords() {
   renderTableState("borrowQueryTable", 6, "正在加载借阅记录...", "loading");
   try {
     const res = await req("/api/borrow/my");
-    const rows = res.data || [];
+    const rows = (res.data || []).filter(r => r.status !== "RETURNED");
     const tbody = document.getElementById("borrowQueryTable");
     tbody.innerHTML = rows.length ? rows.map(r => `
       <tr>
@@ -246,11 +294,72 @@ async function loadBorrowQueryRecords() {
         <td>${r.status}</td>
         <td>${r.overdueFee || 0}</td>
       </tr>
-    `).join("") : `<tr class="status-row status-empty"><td colspan="6">暂无借阅记录</td></tr>`;
+    `).join("") : `<tr class="status-row status-empty"><td colspan="6">当前无在借图书</td></tr>`;
   } catch (e) {
     renderTableState("borrowQueryTable", 6, "借阅记录加载失败", "error");
     show(e.message);
   }
+}
+
+async function loadBorrowInventoryBooks(resetPage = false) {
+  if (isAdmin()) {
+    return;
+  }
+  if (resetPage) {
+    state.borrowInventoryPage = 1;
+  }
+  renderTableState("userBookTable", 8, "正在加载库存图书...", "loading");
+  try {
+    const keyword = (document.getElementById("userBookKeyword")?.value || "").trim();
+    const res = await req(`/api/books${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`);
+    const books = res.data || [];
+    const pageSize = state.borrowInventoryPageSize;
+    const totalPages = Math.max(1, Math.ceil(books.length / pageSize));
+    if (state.borrowInventoryPage > totalPages) {
+      state.borrowInventoryPage = totalPages;
+    }
+    const start = (state.borrowInventoryPage - 1) * pageSize;
+    const pagedBooks = books.slice(start, start + pageSize);
+
+    const tbody = document.getElementById("userBookTable");
+    tbody.innerHTML = pagedBooks.length ? pagedBooks.map(b => `
+      <tr>
+        <td>${b.id}</td>
+        <td>${b.title}</td>
+        <td>${b.author}</td>
+        <td>${b.isbn}</td>
+        <td>${b.category || "-"}</td>
+        <td>${b.stock}</td>
+        <td>${b.availableStock}</td>
+        <td>${b.availableStock > 0 ? `<button onclick="borrow(${b.id})">借阅</button>` : "-"}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="8">未找到匹配图书</td></tr>`;
+
+    const pageInfo = document.getElementById("userBookPageInfo");
+    const prevBtn = document.getElementById("userBookPrevPage");
+    const nextBtn = document.getElementById("userBookNextPage");
+    if (pageInfo) {
+      pageInfo.textContent = `第 ${state.borrowInventoryPage} / ${totalPages} 页`;
+    }
+    if (prevBtn) {
+      prevBtn.disabled = state.borrowInventoryPage <= 1;
+    }
+    if (nextBtn) {
+      nextBtn.disabled = state.borrowInventoryPage >= totalPages;
+    }
+  } catch (e) {
+    renderTableState("userBookTable", 8, "库存图书加载失败", "error");
+    show(e.message);
+  }
+}
+
+function changeBorrowInventoryPage(step) {
+  const nextPage = state.borrowInventoryPage + step;
+  if (nextPage < 1) {
+    return;
+  }
+  state.borrowInventoryPage = nextPage;
+  loadBorrowInventoryBooks();
 }
 
 async function loadReturnableRecords() {
@@ -306,13 +415,16 @@ async function loadCategories() {
 }
 
 async function loadBooks() {
+  const tbody = document.getElementById("bookTable");
+  if (!tbody) {
+    return;
+  }
   renderTableState("bookTable", 8, "正在加载图书数据...", "loading");
   try {
     const keyword = document.getElementById("keyword").value.trim();
     const category = document.getElementById("categoryFilter").value;
     const res = await req(`/api/books${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`);
     const books = (res.data || []).filter(b => !category || b.category === category);
-    const tbody = document.getElementById("bookTable");
     tbody.innerHTML = books.length ? books.map(b => `
       <tr>
         <td>${b.id}</td>
@@ -331,30 +443,183 @@ async function loadBooks() {
   }
 }
 
-async function loadAdminBooks() {
+function fillAdminBookSuggest(books) {
+  const el = document.getElementById("adminBookSuggest");
+  if (!el) {
+    return;
+  }
+  const values = new Set();
+  books.forEach(b => {
+    [b.title, b.author, b.isbn, b.category].forEach(v => {
+      if (v) {
+        values.add(v);
+      }
+    });
+  });
+  el.innerHTML = Array.from(values).slice(0, 30).map(v => `<option value="${v}"></option>`).join("");
+}
+
+function getFilteredSortedAdminBooks() {
+  const keyword = (document.getElementById("adminBookKeyword")?.value || "").trim().toLowerCase();
+  const category = document.getElementById("adminCategoryFilter")?.value || "";
+  const publisherKeyword = (document.getElementById("advancedPublisher")?.value || "").trim().toLowerCase();
+  const stockMinRaw = document.getElementById("advancedStockMin")?.value;
+  const stockMaxRaw = document.getElementById("advancedStockMax")?.value;
+  const stockMin = stockMinRaw === "" || stockMinRaw == null ? null : Number(stockMinRaw);
+  const stockMax = stockMaxRaw === "" || stockMaxRaw == null ? null : Number(stockMaxRaw);
+  const filtered = state.adminBooks.filter(b => {
+    const hitCategory = !category || b.category === category;
+    if (!hitCategory) {
+      return false;
+    }
+    if (!keyword) {
+      return true;
+    }
+    const hitKeyword = !keyword || [b.title, b.author, b.isbn, b.category].some(v => String(v || "").toLowerCase().includes(keyword));
+    if (!hitKeyword) {
+      return false;
+    }
+    const hitPublisher = !publisherKeyword || String(b.publisher || "").toLowerCase().includes(publisherKeyword);
+    if (!hitPublisher) {
+      return false;
+    }
+    if (stockMin !== null && Number(b.stock || 0) < stockMin) {
+      return false;
+    }
+    if (stockMax !== null && Number(b.stock || 0) > stockMax) {
+      return false;
+    }
+    return true;
+  });
+  const { adminBookSortKey: key, adminBookSortOrder: order } = state;
+  filtered.sort((a, b) => {
+    const av = a[key] ?? "";
+    const bv = b[key] ?? "";
+    if (typeof av === "number" && typeof bv === "number") {
+      return order === "asc" ? av - bv : bv - av;
+    }
+    return order === "asc"
+      ? String(av).localeCompare(String(bv), "zh-CN")
+      : String(bv).localeCompare(String(av), "zh-CN");
+  });
+  return filtered;
+}
+
+function renderAdminBookTable() {
+  const tbody = document.getElementById("adminBookTable");
+  if (!tbody) {
+    return;
+  }
+  const rows = getFilteredSortedAdminBooks();
+  const totalPages = Math.max(1, Math.ceil(rows.length / state.adminBookPageSize));
+  if (state.adminBookPage > totalPages) {
+    state.adminBookPage = totalPages;
+  }
+  const start = (state.adminBookPage - 1) * state.adminBookPageSize;
+  const paged = rows.slice(start, start + state.adminBookPageSize);
+  tbody.innerHTML = paged.length ? paged.map(b => {
+    const lowStock = b.availableStock <= 2;
+    return `
+      <tr class="${lowStock ? "stock-warning-row" : ""}">
+        <td><input type="checkbox" ${state.adminSelectedBookIds.has(b.id) ? "checked" : ""} onchange="toggleAdminBookSelection(${b.id}, this.checked)" /></td>
+        <td title="ID: ${b.id}">${b.title}</td>
+        <td>${b.author}</td>
+        <td>${b.category || "-"}</td>
+        <td>${b.isbn}</td>
+        <td>${b.stock}</td>
+        <td class="${lowStock ? "stock-warning" : ""}">${b.availableStock}${lowStock ? "（低库存）" : ""}</td>
+        <td>
+          <button onclick="editBook(${b.id})">✏️ 编辑</button>
+          <button onclick="deleteBook(${b.id})">🗑️ 删除</button>
+        </td>
+      </tr>
+    `;
+  }).join("") : `<tr class="status-row status-empty"><td colspan="8">暂无图书数据，点击“添加图书”开始录入</td></tr>`;
+
+  const pageInfo = document.getElementById("adminBookPageInfo");
+  const prev = document.getElementById("adminBookPrev");
+  const next = document.getElementById("adminBookNext");
+  const selectAll = document.getElementById("selectAllBooks");
+  if (pageInfo) {
+    pageInfo.textContent = `第 ${state.adminBookPage} / ${totalPages} 页`;
+  }
+  if (prev) {
+    prev.disabled = state.adminBookPage <= 1;
+  }
+  if (next) {
+    next.disabled = state.adminBookPage >= totalPages;
+  }
+  if (selectAll) {
+    const currentPageIds = new Set(paged.map(b => b.id));
+    selectAll.checked = paged.length > 0 && paged.every(b => state.adminSelectedBookIds.has(b.id));
+    selectAll.indeterminate = paged.some(b => state.adminSelectedBookIds.has(b.id)) && !selectAll.checked;
+    state.adminSelectedBookIds.forEach(id => {
+      if (!rows.some(b => b.id === id)) {
+        state.adminSelectedBookIds.delete(id);
+      }
+    });
+    if (currentPageIds.size === 0) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+  }
+}
+
+function sortAdminBooks(key) {
+  if (state.adminBookSortKey === key) {
+    state.adminBookSortOrder = state.adminBookSortOrder === "asc" ? "desc" : "asc";
+  } else {
+    state.adminBookSortKey = key;
+    state.adminBookSortOrder = "asc";
+  }
+  renderAdminBookTable();
+}
+
+function changeAdminBookPage(step) {
+  const next = state.adminBookPage + step;
+  if (next < 1) {
+    return;
+  }
+  state.adminBookPage = next;
+  renderAdminBookTable();
+}
+
+function toggleAdminBookSelection(id, checked) {
+  if (checked) {
+    state.adminSelectedBookIds.add(id);
+  } else {
+    state.adminSelectedBookIds.delete(id);
+  }
+  renderAdminBookTable();
+}
+
+function toggleSelectAllAdminBooks(checked) {
+  const rows = getFilteredSortedAdminBooks();
+  const start = (state.adminBookPage - 1) * state.adminBookPageSize;
+  const paged = rows.slice(start, start + state.adminBookPageSize);
+  paged.forEach(b => {
+    if (checked) {
+      state.adminSelectedBookIds.add(b.id);
+    } else {
+      state.adminSelectedBookIds.delete(b.id);
+    }
+  });
+  renderAdminBookTable();
+}
+
+async function loadAdminBooks(resetPage = false) {
   if (!isAdmin()) {
     return;
+  }
+  if (resetPage) {
+    state.adminBookPage = 1;
   }
   renderTableState("adminBookTable", 8, "正在加载图书数据...", "loading");
   try {
     const res = await req("/api/books");
-    const tbody = document.getElementById("adminBookTable");
-    const rows = res.data || [];
-    tbody.innerHTML = rows.length ? rows.map(b => `
-      <tr>
-        <td>${b.id}</td>
-        <td>${b.title}</td>
-        <td>${b.author}</td>
-        <td>${b.isbn}</td>
-        <td>${b.category || "-"}</td>
-        <td>${b.stock}</td>
-        <td>${b.availableStock}</td>
-        <td>
-          <button onclick="editBook(${b.id})">编辑</button>
-          <button onclick="deleteBook(${b.id})">删除</button>
-        </td>
-      </tr>
-    `).join("") : `<tr class="status-row status-empty"><td colspan="8">暂无馆藏图书，请先新增图书</td></tr>`;
+    state.adminBooks = res.data || [];
+    fillAdminBookSuggest(state.adminBooks);
+    renderAdminBookTable();
   } catch (e) {
     renderTableState("adminBookTable", 8, "图书管理数据加载失败", "error");
     show(e.message);
@@ -365,9 +630,8 @@ async function borrow(bookId) {
   try {
     await req(`/api/borrow/${bookId}`, "POST");
     show("借阅成功");
-    await loadBooks();
-    await loadMyRecords();
-    await loadMyOverdues();
+    await loadBorrowQueryRecords();
+    await loadBorrowInventoryBooks();
     await updateNotificationBadge();
   } catch (e) {
     show(e.message);
@@ -449,11 +713,205 @@ async function returnBook(recordId) {
     show("归还成功");
     await loadBorrowQueryRecords();
     await loadReturnableRecords();
-    await loadBooks();
+    await loadBorrowInventoryBooks();
+    await loadAdminBooks();
     await updateNotificationBadge();
   } catch (e) {
     show(e.message);
   }
+}
+
+function resetBookManageFilter() {
+  const keyword = document.getElementById("adminBookKeyword");
+  const category = document.getElementById("adminCategoryFilter");
+  if (keyword) {
+    keyword.value = "";
+  }
+  if (category) {
+    category.value = "";
+  }
+  const publisher = document.getElementById("advancedPublisher");
+  const stockMin = document.getElementById("advancedStockMin");
+  const stockMax = document.getElementById("advancedStockMax");
+  if (publisher) publisher.value = "";
+  if (stockMin) stockMin.value = "";
+  if (stockMax) stockMax.value = "";
+  state.adminBookPage = 1;
+  state.adminSelectedBookIds.clear();
+  loadAdminBooks(true);
+}
+
+function toggleAdvancedFilter() {
+  const panel = document.getElementById("advancedFilterPanel");
+  if (!panel) {
+    return;
+  }
+  const btn = document.getElementById("advancedFilterBtn");
+  const willOpen = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !willOpen);
+  if (btn) {
+    btn.textContent = willOpen ? "收起高级筛选" : "高级筛选";
+  }
+}
+
+async function batchDeleteBooks() {
+  if (!isAdmin()) {
+    show("无权限操作");
+    return;
+  }
+  const ids = Array.from(state.adminSelectedBookIds);
+  if (!ids.length) {
+    show("请先勾选要删除的图书");
+    return;
+  }
+  if (!window.confirm(`确认删除已选 ${ids.length} 本图书吗？`)) {
+    return;
+  }
+  try {
+    for (const id of ids) {
+      await req(`/api/books/${id}`, "DELETE");
+    }
+    show("批量删除成功");
+    state.adminSelectedBookIds.clear();
+    await loadAdminBooks();
+    await loadBorrowInventoryBooks();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+async function batchUpdateCategory() {
+  if (!isAdmin()) {
+    show("无权限操作");
+    return;
+  }
+  const ids = Array.from(state.adminSelectedBookIds);
+  const category = document.getElementById("batchCategory")?.value || "";
+  if (!ids.length) {
+    show("请先勾选要修改的图书");
+    return;
+  }
+  if (!category) {
+    show("请选择目标分类");
+    return;
+  }
+  try {
+    for (const id of ids) {
+      const oldBook = state.adminBooks.find(b => b.id === id);
+      if (!oldBook) {
+        continue;
+      }
+      await req(`/api/books/${id}`, "PUT", {
+        title: oldBook.title,
+        author: oldBook.author,
+        publisher: oldBook.publisher,
+        isbn: oldBook.isbn,
+        category,
+        stock: oldBook.stock
+      });
+    }
+    show("批量分类修改成功");
+    await loadAdminBooks();
+    await loadBorrowInventoryBooks();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+function openBookModal() {
+  state.editingBookId = null;
+  document.getElementById("bookModalTitle").textContent = "添加图书";
+  resetBookForm();
+  setHidden("bookModal", false);
+}
+
+function closeBookModal() {
+  setHidden("bookModal", true);
+}
+
+function openCategoryModal() {
+  document.getElementById("quickCategoryName").value = "";
+  document.getElementById("quickCategoryDescription").value = "";
+  setHidden("categoryModal", false);
+}
+
+function closeCategoryModal() {
+  setHidden("categoryModal", true);
+}
+
+async function createCategoryFromModal() {
+  const name = document.getElementById("quickCategoryName").value.trim();
+  const description = document.getElementById("quickCategoryDescription").value.trim();
+  if (!name) {
+    show("请填写分类名称");
+    return;
+  }
+  try {
+    await req("/api/book-categories", "POST", { name, description });
+    show("分类创建成功");
+    closeCategoryModal();
+    await loadCategories();
+  } catch (e) {
+    show(e.message);
+  }
+}
+
+function openCategoryDrawer() {
+  setHidden("categoryDrawer", false);
+}
+
+function closeCategoryDrawer() {
+  setHidden("categoryDrawer", true);
+}
+
+function toggleLogPanel() {
+  const panel = document.getElementById("adminLogPanel");
+  if (!panel) {
+    return;
+  }
+  const nextHidden = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !nextHidden);
+  if (nextHidden) {
+    loadAdminLogs();
+  }
+}
+
+async function loadAdminLogs() {
+  if (!isAdmin()) {
+    return;
+  }
+  renderTableState("adminLogTable", 5, "正在加载操作记录...", "loading");
+  try {
+    const res = await req("/api/admin/logs");
+    const rows = res.data || [];
+    const tbody = document.getElementById("adminLogTable");
+    tbody.innerHTML = rows.length ? rows.map(r => `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.adminName || r.adminUsername || "-"}</td>
+        <td>${r.operation || "-"}</td>
+        <td>${r.detail || "-"}</td>
+        <td>${r.createdAt || ""}</td>
+      </tr>
+    `).join("") : `<tr class="status-row status-empty"><td colspan="5">暂无操作日志</td></tr>`;
+  } catch (e) {
+    renderTableState("adminLogTable", 5, "操作记录加载失败", "error");
+    show(e.message);
+  }
+}
+
+function jumpAdminBookPage() {
+  const input = document.getElementById("adminBookJumpPage");
+  if (!input) {
+    return;
+  }
+  const target = Number(input.value);
+  if (!Number.isInteger(target) || target < 1) {
+    show("请输入有效页码");
+    return;
+  }
+  state.adminBookPage = target;
+  renderAdminBookTable();
 }
 
 function resetBookForm() {
@@ -468,19 +926,20 @@ function resetBookForm() {
 
 async function editBook(id) {
   try {
-    const res = await req("/api/books");
-    const book = (res.data || []).find(b => b.id === id);
+    const book = state.adminBooks.find(b => b.id === id);
     if (!book) {
       show("图书不存在");
       return;
     }
     state.editingBookId = id;
+    document.getElementById("bookModalTitle").textContent = "编辑图书";
     document.getElementById("bookTitle").value = book.title || "";
     document.getElementById("bookAuthor").value = book.author || "";
     document.getElementById("bookPublisher").value = book.publisher || "";
     document.getElementById("bookIsbn").value = book.isbn || "";
     document.getElementById("bookCategory").value = book.category || "";
     document.getElementById("bookStock").value = book.stock ?? "";
+    setHidden("bookModal", false);
   } catch (e) {
     show(e.message);
   }
@@ -504,19 +963,24 @@ async function createOrUpdateBook() {
       show("图书创建成功");
     }
     resetBookForm();
+    closeBookModal();
     await loadAdminBooks();
-    await loadBooks();
+    await loadBorrowInventoryBooks();
   } catch (e) {
     show(e.message);
   }
 }
 
 async function deleteBook(id) {
+  if (!window.confirm("确认删除该图书吗？删除后不可恢复。")) {
+    return;
+  }
   try {
     await req(`/api/books/${id}`, "DELETE");
     show("图书删除成功");
+    state.adminSelectedBookIds.delete(id);
     await loadAdminBooks();
-    await loadBooks();
+    await loadBorrowInventoryBooks();
   } catch (e) {
     show(e.message);
   }
@@ -551,7 +1015,6 @@ async function createOrUpdateCategory() {
     }
     resetCategoryForm();
     await loadCategories();
-    await loadBooks();
     await loadAdminBooks();
   } catch (e) {
     show(e.message);
@@ -699,10 +1162,57 @@ async function createBookFromAddPage() {
     document.getElementById("addBookIsbn").value = "";
     document.getElementById("addBookCategory").value = "";
     document.getElementById("addBookStock").value = "";
-    await loadBooks();
     await loadAdminBooks();
+    await loadBorrowInventoryBooks();
   } catch (e) {
     show(e.message);
+  }
+}
+
+function initBorrowInventorySearch() {
+  const input = document.getElementById("userBookKeyword");
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        loadBorrowInventoryBooks(true);
+      }
+    });
+  }
+  const adminInput = document.getElementById("adminBookKeyword");
+  if (adminInput) {
+    adminInput.addEventListener("input", () => {
+      state.adminBookPage = 1;
+      renderAdminBookTable();
+    });
+    adminInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        loadAdminBooks(true);
+      }
+    });
+  }
+  const adminFilter = document.getElementById("adminCategoryFilter");
+  if (adminFilter) {
+    adminFilter.addEventListener("change", () => {
+      state.adminBookPage = 1;
+      renderAdminBookTable();
+    });
+  }
+  ["advancedPublisher", "advancedStockMin", "advancedStockMax"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", () => {
+        state.adminBookPage = 1;
+        renderAdminBookTable();
+      });
+    }
+  });
+  const jumpPage = document.getElementById("adminBookJumpPage");
+  if (jumpPage) {
+    jumpPage.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        jumpAdminBookPage();
+      }
+    });
   }
 }
 
@@ -1057,6 +1567,8 @@ async function updateNotificationBadge(statsData = null) {
 
 (async function init() {
   initThemeToggle();
+  initSidebarToggle();
+  initBorrowInventorySearch();
   const valid = await validateSessionOnStartup();
   if (!valid) {
     window.location.href = "/login.html";

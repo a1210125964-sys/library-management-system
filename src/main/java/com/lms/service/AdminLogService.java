@@ -6,6 +6,7 @@ import com.lms.repository.AdminOperationLogRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AdminLogService {
@@ -23,5 +24,9 @@ public class AdminLogService {
         log.setDetail(detail);
         log.setCreatedAt(LocalDateTime.now());
         adminOperationLogRepository.save(log);
+    }
+
+    public List<AdminOperationLog> recentLogs() {
+        return adminOperationLogRepository.findTop50ByOrderByCreatedAtDesc();
     }
 }

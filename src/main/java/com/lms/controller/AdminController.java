@@ -2,6 +2,7 @@ package com.lms.controller;
 
 import com.lms.dto.ConfigUpdateRequest;
 import com.lms.dto.ResetPasswordRequest;
+import com.lms.model.AdminOperationLog;
 import com.lms.model.User;
 import com.lms.service.AdminLogService;
 import com.lms.service.AuthService;
@@ -90,6 +91,13 @@ public class AdminController {
         return success("密码重置成功", userMap(user));
     }
 
+    @GetMapping("/logs")
+    public Map<String, Object> logs(@RequestHeader("X-Token") String token) {
+        authService.requireAdmin(token);
+        List<Map<String, Object>> data = adminLogService.recentLogs().stream().map(this::logMap).collect(Collectors.toList());
+        return success("查询成功", data);
+    }
+
     private Map<String, Object> success(String message, Object data) {
         Map<String, Object> result = new HashMap<>();
         result.put("message", message);
@@ -106,6 +114,18 @@ public class AdminController {
         map.put("idCard", user.getIdCard());
         map.put("role", user.getRole());
         map.put("createdAt", user.getCreatedAt());
+        return map;
+    }
+
+    private Map<String, Object> logMap(AdminOperationLog log) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", log.getId());
+        map.put("adminId", log.getAdmin() == null ? null : log.getAdmin().getId());
+        map.put("adminName", log.getAdmin() == null ? "" : log.getAdmin().getRealName());
+        map.put("adminUsername", log.getAdmin() == null ? "" : log.getAdmin().getUsername());
+        map.put("operation", log.getOperation());
+        map.put("detail", log.getDetail());
+        map.put("createdAt", log.getCreatedAt());
         return map;
     }
 }

@@ -22,8 +22,6 @@
 
             <button class="nav-item admin-only" data-page="studentManage" type="button"><span class="nav-ico">🎓</span><span>学生信息管理</span></button>
             <button class="nav-item admin-only" data-page="bookManage" type="button"><span class="nav-ico">📚</span><span>图书管理</span></button>
-            <button class="nav-item admin-only" data-page="bookQuery" type="button"><span class="nav-ico">🔍</span><span>图书查询</span></button>
-            <button class="nav-item admin-only" data-page="addBook" type="button"><span class="nav-ico">➕</span><span>添加图书</span></button>
             <button class="nav-item admin-only" data-page="changePassword" type="button"><span class="nav-ico">🔐</span><span>修改密码</span></button>
             <button class="nav-item admin-only" data-page="addAdmin" type="button"><span class="nav-ico">👨‍💼</span><span>添加管理员</span></button>
         </nav>
@@ -36,9 +34,10 @@
         <header class="topbar glass-card">
             <div>
                 <h2 id="pageTitle">借阅图书查询</h2>
-                <p class="muted">模块按钮与功能页面一一对应</p>
+                <p id="breadcrumb" class="muted">首页 &gt; 借阅图书查询</p>
             </div>
             <div class="topbar-actions">
+                <button id="sidebarToggle" class="icon-btn" type="button" title="折叠侧边栏" aria-label="折叠侧边栏">☰</button>
                 <button id="themeToggle" class="icon-btn" type="button" title="切换主题" aria-label="切换深色和浅色模式">🌓</button>
                 <button class="icon-btn" type="button" title="通知">
                     🔔
@@ -52,7 +51,7 @@
         <section id="borrowQueryPage" class="page-section">
             <article class="glass-card panel">
                 <div class="panel-head">
-                    <h3>借阅图书查询</h3>
+                    <h3>当前借阅图书</h3>
                     <button class="btn btn-secondary" type="button" onclick="loadBorrowQueryRecords()">刷新记录</button>
                 </div>
                 <div class="table-wrap">
@@ -64,6 +63,34 @@
                         </thead>
                         <tbody id="borrowQueryTable"></tbody>
                     </table>
+                </div>
+            </article>
+
+            <article class="glass-card panel">
+                <div class="panel-head">
+                    <h3>图书库存查询</h3>
+                    <div class="row compact">
+                        <div class="field floating inline-field">
+                            <input id="userBookKeyword" placeholder=" " />
+                            <label for="userBookKeyword">按书名 / 作者 / ISBN / 分类搜索</label>
+                        </div>
+                        <button class="btn" type="button" onclick="loadBorrowInventoryBooks(true)">查询</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>库存</th><th>可借</th><th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="userBookTable"></tbody>
+                    </table>
+                </div>
+                <div class="row compact">
+                    <button id="userBookPrevPage" class="btn btn-secondary" type="button" onclick="changeBorrowInventoryPage(-1)">上一页</button>
+                    <span id="userBookPageInfo" class="muted">第 1 / 1 页</span>
+                    <button id="userBookNextPage" class="btn btn-secondary" type="button" onclick="changeBorrowInventoryPage(1)">下一页</button>
                 </div>
             </article>
         </section>
@@ -108,81 +135,104 @@
 
         <section id="bookManagePage" class="page-section hidden">
             <article class="glass-card panel">
-                <div class="panel-head">
-                    <h3>图书管理</h3>
-                    <button class="btn btn-secondary" type="button" onclick="loadAdminBooks(); loadCategories();">刷新列表</button>
-                </div>
-
-                <div class="floating-grid">
-                    <div class="field floating"><input id="bookTitle" placeholder=" " /><label for="bookTitle">书名</label></div>
-                    <div class="field floating"><input id="bookAuthor" placeholder=" " /><label for="bookAuthor">作者</label></div>
-                    <div class="field floating"><input id="bookPublisher" placeholder=" " /><label for="bookPublisher">出版社</label></div>
-                    <div class="field floating"><input id="bookIsbn" placeholder=" " /><label for="bookIsbn">ISBN</label></div>
-                    <div class="field"><select id="bookCategory"></select></div>
-                    <div class="field floating"><input id="bookStock" type="number" min="0" placeholder=" " /><label for="bookStock">库存</label></div>
-                </div>
-                <div class="row">
-                    <button class="btn" type="button" onclick="createOrUpdateBook()">保存图书</button>
-                    <button class="btn btn-secondary" type="button" onclick="resetBookForm()">清空表单</button>
-                </div>
-
-                <div class="floating-grid two-cols">
-                    <div class="field floating"><input id="categoryName" placeholder=" " /><label for="categoryName">分类名称</label></div>
-                    <div class="field floating"><input id="categoryDescription" placeholder=" " /><label for="categoryDescription">分类说明</label></div>
-                </div>
-                <div class="row">
-                    <button class="btn" type="button" onclick="createOrUpdateCategory()">保存分类</button>
-                    <button class="btn btn-secondary" type="button" onclick="resetCategoryForm()">重置分类</button>
-                </div>
-
-                <div class="split-tables">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>库存</th><th>可借</th><th>操作</th>
-                            </tr>
-                            </thead>
-                            <tbody id="adminBookTable"></tbody>
-                        </table>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th><th>分类名称</th><th>说明</th><th>操作</th>
-                            </tr>
-                            </thead>
-                            <tbody id="categoryTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </article>
-        </section>
-
-        <section id="bookQueryPage" class="page-section hidden">
-            <article class="glass-card panel">
-                <div class="panel-head">
-                    <h3>图书查询</h3>
-                    <div class="row compact">
+                <div class="book-toolbar">
+                    <div class="toolbar-left">
                         <div class="field floating inline-field">
-                            <input id="keyword" placeholder=" " />
-                            <label for="keyword">按书名 / 作者 / ISBN 搜索</label>
+                            <input id="adminBookKeyword" list="adminBookSuggest" placeholder=" " />
+                            <label for="adminBookKeyword">书名 / 作者 / ISBN / 分类</label>
+                            <datalist id="adminBookSuggest"></datalist>
                         </div>
-                        <select id="categoryFilter"></select>
-                        <button class="btn" type="button" onclick="loadBooks()">查询</button>
+                        <select id="adminCategoryFilter"></select>
+                        <button class="btn" type="button" onclick="loadAdminBooks(true)">查询</button>
+                        <button id="advancedFilterBtn" class="btn btn-secondary" type="button" onclick="toggleAdvancedFilter()">高级筛选</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-secondary" type="button" onclick="resetBookManageFilter()">刷新列表</button>
+                        <button class="btn" type="button" onclick="openCategoryDrawer()">添加分类</button>
+                        <button class="btn" type="button" onclick="openBookModal()">添加图书</button>
+                        <button class="btn btn-secondary" type="button" onclick="toggleLogPanel()">操作记录</button>
                     </div>
                 </div>
-                <div class="table-wrap">
+
+                <div id="adminCategoryQuick" class="row compact category-quick"></div>
+
+                <div id="advancedFilterPanel" class="advanced-filter hidden">
+                    <div class="floating-grid two-cols">
+                        <div class="field floating">
+                            <input id="advancedPublisher" placeholder=" " />
+                            <label for="advancedPublisher">出版社关键词</label>
+                        </div>
+                        <div class="row compact">
+                            <div class="field floating"><input id="advancedStockMin" type="number" min="0" placeholder=" " /><label for="advancedStockMin">库存下限</label></div>
+                            <div class="field floating"><input id="advancedStockMax" type="number" min="0" placeholder=" " /><label for="advancedStockMax">库存上限</label></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-wrap admin-table-main">
                     <table>
+                        <colgroup>
+                            <col style="width: 5%" />
+                            <col style="width: 30%" />
+                            <col style="width: 15%" />
+                            <col style="width: 10%" />
+                            <col style="width: 15%" />
+                            <col style="width: 8%" />
+                            <col style="width: 8%" />
+                            <col style="width: 14%" />
+                        </colgroup>
                         <thead>
                         <tr>
-                            <th>ID</th><th>书名</th><th>作者</th><th>ISBN</th><th>分类</th><th>库存</th><th>可借</th><th>操作</th>
+                            <th><input id="selectAllBooks" type="checkbox" onchange="toggleSelectAllAdminBooks(this.checked)" /></th>
+                            <th onclick="sortAdminBooks('title')">书名</th>
+                            <th onclick="sortAdminBooks('author')">作者</th>
+                            <th onclick="sortAdminBooks('category')">分类</th>
+                            <th onclick="sortAdminBooks('isbn')">ISBN</th>
+                            <th onclick="sortAdminBooks('stock')">库存</th>
+                            <th onclick="sortAdminBooks('availableStock')">可借</th>
+                            <th>操作</th>
                         </tr>
                         </thead>
-                        <tbody id="bookTable"></tbody>
+                        <tbody id="adminBookTable"></tbody>
                     </table>
                 </div>
+
+                <div class="table-footer">
+                    <div class="footer-left row compact">
+                        <label class="table-check"><input type="checkbox" onchange="toggleSelectAllAdminBooks(this.checked)" /> 全选本页</label>
+                        <button class="btn btn-secondary" type="button" onclick="batchDeleteBooks()">批量删除</button>
+                        <select id="batchCategory"></select>
+                        <button class="btn btn-secondary" type="button" onclick="batchUpdateCategory()">批量修改分类</button>
+                    </div>
+                    <div class="footer-right row compact">
+                        <span class="muted" id="adminBookPageInfo">第 1 / 1 页</span>
+                        <button id="adminBookPrev" class="btn btn-secondary" type="button" onclick="changeAdminBookPage(-1)">⬅ 上一页</button>
+                        <button id="adminBookNext" class="btn btn-secondary" type="button" onclick="changeAdminBookPage(1)">下一页 ➡</button>
+                        <div class="row compact jump-wrap">
+                            <span class="muted">跳转</span>
+                            <input id="adminBookJumpPage" type="number" min="1" class="jump-input" />
+                            <button class="btn btn-secondary" type="button" onclick="jumpAdminBookPage()">GO</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="adminLogPanel" class="collapse-panel hidden">
+                    <div class="panel-head">
+                        <h3>操作记录（最近 50 条）</h3>
+                        <button class="btn btn-secondary" type="button" onclick="loadAdminLogs()">刷新记录</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>ID</th><th>管理员</th><th>操作</th><th>详情</th><th>时间</th>
+                            </tr>
+                            </thead>
+                            <tbody id="adminLogTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
             </article>
         </section>
 
@@ -248,6 +298,71 @@
             </article>
         </section>
     </main>
+</div>
+
+<div id="categoryDrawer" class="drawer hidden">
+    <div class="drawer-mask" onclick="closeCategoryDrawer()"></div>
+    <div class="drawer-panel">
+        <div class="panel-head">
+            <h3>分类管理</h3>
+            <button class="btn btn-secondary" type="button" onclick="closeCategoryDrawer()">关闭</button>
+        </div>
+        <div class="floating-grid two-cols">
+            <div class="field floating"><input id="categoryName" placeholder=" " /><label for="categoryName">分类名称</label></div>
+            <div class="field floating"><input id="categoryDescription" placeholder=" " /><label for="categoryDescription">分类说明</label></div>
+        </div>
+        <div class="row">
+            <button class="btn" type="button" onclick="createOrUpdateCategory()">保存分类</button>
+            <button class="btn btn-secondary" type="button" onclick="resetCategoryForm()">重置分类</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th><th>分类名称</th><th>说明</th><th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="categoryTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="bookModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="panel-head">
+            <h3 id="bookModalTitle">添加图书</h3>
+            <button class="btn btn-secondary" type="button" onclick="closeBookModal()">关闭</button>
+        </div>
+        <div class="floating-grid">
+            <div class="field floating"><input id="bookTitle" placeholder=" " /><label for="bookTitle">书名</label></div>
+            <div class="field floating"><input id="bookAuthor" placeholder=" " /><label for="bookAuthor">作者</label></div>
+            <div class="field floating"><input id="bookPublisher" placeholder=" " /><label for="bookPublisher">出版社</label></div>
+            <div class="field floating"><input id="bookIsbn" placeholder=" " /><label for="bookIsbn">ISBN</label></div>
+            <div class="field"><select id="bookCategory"></select></div>
+            <div class="field floating"><input id="bookStock" type="number" min="0" placeholder=" " /><label for="bookStock">库存</label></div>
+        </div>
+        <div class="row">
+            <button class="btn" type="button" onclick="createOrUpdateBook()">保存图书</button>
+            <button class="btn btn-secondary" type="button" onclick="resetBookForm()">清空表单</button>
+        </div>
+    </div>
+</div>
+
+<div id="categoryModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="panel-head">
+            <h3>快速添加分类</h3>
+            <button class="btn btn-secondary" type="button" onclick="closeCategoryModal()">关闭</button>
+        </div>
+        <div class="floating-grid two-cols">
+            <div class="field floating"><input id="quickCategoryName" placeholder=" " /><label for="quickCategoryName">分类名称</label></div>
+            <div class="field floating"><input id="quickCategoryDescription" placeholder=" " /><label for="quickCategoryDescription">分类说明</label></div>
+        </div>
+        <div class="row">
+            <button class="btn" type="button" onclick="createCategoryFromModal()">保存分类</button>
+        </div>
+    </div>
 </div>
 
 <div id="toast" aria-live="polite"></div>

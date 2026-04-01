@@ -75,6 +75,7 @@ http://localhost:8080
   - `GET /api/admin/configs`
   - `PUT /api/admin/configs`
   - `GET /api/admin/users`
+  - `GET /api/admin/logs`
   - `POST /api/admin/users/{id}/reset-password`
 
 除公开接口外，请在 Header 中带上：`X-Token: <登录返回token>`

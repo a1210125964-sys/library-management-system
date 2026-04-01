@@ -245,14 +245,14 @@ body {
 
 .badge {
   position: absolute;
-  top: -6px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
+  top: -8px;
+  right: -7px;
+  min-width: 22px;
+  height: 22px;
   border-radius: 999px;
   background: var(--accent-500);
   color: #ffffff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -316,6 +316,98 @@ body {
 .panel {
   padding: 16px;
   margin-bottom: 14px;
+}
+
+.book-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+#breadcrumb {
+  margin-top: 2px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  flex: 1;
+}
+
+.toolbar-left .inline-field {
+  flex: 1 1 70%;
+  min-width: 420px;
+}
+
+.toolbar-left select {
+  min-width: 170px;
+}
+
+.category-quick {
+  margin: 4px 0 10px;
+}
+
+.quick-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.advanced-filter {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface-soft);
+  margin-bottom: 10px;
+}
+
+.admin-table-main {
+  min-height: 420px;
+}
+
+.table-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.footer-right {
+  margin-left: auto;
+}
+
+.jump-wrap {
+  margin-left: 6px;
+}
+
+.jump-input {
+  width: 72px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.collapse-panel {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.table-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
 }
 
 .panel-head {
@@ -473,7 +565,7 @@ h3 {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 840px;
+  min-width: 980px;
 }
 
 thead th {
@@ -481,8 +573,16 @@ thead th {
   padding: 12px 10px;
   background: #f8fafc;
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
   border-bottom: 1px solid var(--line);
+}
+
+thead th[onclick] {
+  cursor: pointer;
+}
+
+thead th[onclick]:hover {
+  background: #eef6ff;
 }
 
 td {
@@ -494,8 +594,21 @@ td {
 
 tbody tr { transition: background .16s ease; }
 
+tbody tr:nth-child(even) {
+  background: #f8fbff;
+}
+
 tbody tr:hover {
   background: #f0f9ff;
+}
+
+.stock-warning {
+  color: var(--danger-500);
+  font-weight: 700;
+}
+
+.stock-warning-row {
+  background: rgba(239, 68, 68, 0.06) !important;
 }
 
 td button {
@@ -557,6 +670,70 @@ td button:hover {
   opacity: 0;
   transition: opacity .24s ease;
   z-index: 100;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 99;
+}
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+}
+
+.drawer-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(760px, 92vw);
+  height: 100vh;
+  background: var(--surface-strong);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  overflow: auto;
+}
+
+.modal-card {
+  width: min(980px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+body.sidebar-collapsed .app-shell {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+body.sidebar-collapsed .brand h1,
+body.sidebar-collapsed .brand p,
+body.sidebar-collapsed .nav-item span:not(.nav-ico),
+body.sidebar-collapsed .role-tag {
+  font-size: 0;
+}
+
+body.sidebar-collapsed .nav-item {
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px;
 }
 
 .hidden { display: none !important; }
@@ -633,6 +810,25 @@ select:focus-visible,
     align-items: flex-start;
   }
 
+  .book-toolbar,
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .toolbar-left .inline-field {
+    min-width: 100%;
+  }
+
+  .table-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-right {
+    margin-left: 0;
+  }
+
   .topbar-actions {
     width: 100%;
     justify-content: flex-start;
@@ -640,6 +836,10 @@ select:focus-visible,
   }
 
   .inline-field { min-width: 100%; }
+
+  .admin-table-main {
+    min-height: 320px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
