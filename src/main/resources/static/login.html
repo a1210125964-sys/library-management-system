@@ -7,16 +7,14 @@
     <link rel="stylesheet" href="/css/auth.css" />
 </head>
 <body>
-<div class="bg-orb orb-1"></div>
-<div class="bg-orb orb-2"></div>
 <main class="auth-layout">
     <section class="brand-panel">
         <h1>图书管理系统</h1>
-        <p>安全、稳定、易维护的图书借阅管理平台</p>
+        <p>现代企业级管理后台，适配学校与图书馆业务场景</p>
         <ul>
-            <li>图书检索与库存管理</li>
-            <li>借阅 / 归还 / 续借流程</li>
-            <li>逾期统计与管理配置</li>
+            <li>图书流通数据可视化</li>
+            <li>用户与权限统一管理</li>
+            <li>借阅全流程实时追踪</li>
         </ul>
     </section>
 
@@ -24,11 +22,15 @@
         <h2>账号登录</h2>
         <p class="muted">请输入用户名和密码</p>
 
-        <label for="username">用户名</label>
-        <input id="username" placeholder="请输入用户名" autocomplete="username" />
+        <div class="field">
+            <input id="username" placeholder=" " autocomplete="username" />
+            <label for="username">用户名</label>
+        </div>
 
-        <label for="password">密码</label>
-        <input id="password" type="password" placeholder="请输入密码" autocomplete="current-password" />
+        <div class="field">
+            <input id="password" type="password" placeholder=" " autocomplete="current-password" />
+            <label for="password">密码</label>
+        </div>
 
         <button class="btn" onclick="login()">登录</button>
 
