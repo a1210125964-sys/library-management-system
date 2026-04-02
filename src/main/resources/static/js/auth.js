@@ -1,5 +1,6 @@
 const state = {
   token: localStorage.getItem("token") || "",
+  refreshToken: localStorage.getItem("refreshToken") || "",
   user: JSON.parse(localStorage.getItem("user") || "null")
 };
 
@@ -48,7 +49,17 @@ async function login() {
       throw new Error("请输入用户名和密码");
     }
     const res = await req("/api/auth/login", "POST", { username, password });
-    localStorage.setItem("token", res.data.token);
+    const accessToken = res.data.accessToken || res.data.token;
+    const refreshToken = res.data.refreshToken || "";
+    if (!accessToken) {
+      throw new Error("登录响应缺少访问令牌");
+    }
+    localStorage.setItem("token", accessToken);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    } else {
+      localStorage.removeItem("refreshToken");
+    }
     localStorage.setItem("user", JSON.stringify(res.data));
     window.location.href = "/";
   } catch (e) {

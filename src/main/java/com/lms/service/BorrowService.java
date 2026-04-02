@@ -43,8 +43,7 @@ public class BorrowService {
         if (book.getAvailableStock() <= 0) {
             throw new BusinessException("库存不足，无法借阅");
         }
-
-        book.setAvailableStock(book.getAvailableStock() - 1);
+        bookService.decreaseAvailableStockOrThrow(bookId);
 
         BorrowRecord record = new BorrowRecord();
         record.setUser(user);
@@ -72,7 +71,7 @@ public class BorrowService {
         record.setStatus(BorrowStatus.RETURNED);
 
         Book book = record.getBook();
-        book.setAvailableStock(book.getAvailableStock() + 1);
+        bookService.increaseAvailableStock(book.getId());
 
         if (overdueDays > 0) {
             OverdueRecord overdue = new OverdueRecord();

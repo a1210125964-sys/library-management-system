@@ -1,6 +1,8 @@
 package com.lms.controller;
 
 import com.lms.dto.LoginRequest;
+import com.lms.dto.ApiResponse;
+import com.lms.dto.RefreshTokenRequest;
 import com.lms.dto.RegisterRequest;
 import com.lms.model.User;
 import com.lms.model.UserRole;
@@ -25,34 +27,36 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public Map<String, Object> register(@Valid @RequestBody RegisterRequest req) {
+    public ApiResponse<Map<String, Object>> register(@Valid @RequestBody RegisterRequest req) {
         User user = userService.register(req, UserRole.USER);
-        return success("注册成功", userMap(user));
+        return ApiResponse.success("注册成功", userMap(user));
     }
 
     @PostMapping("/register-admin")
-    public Map<String, Object> registerAdmin(@Valid @RequestBody RegisterRequest req,
-                                             @RequestHeader("X-Token") String token) {
+    public ApiResponse<Map<String, Object>> registerAdmin(@Valid @RequestBody RegisterRequest req,
+                                                          @RequestHeader("X-Token") String token) {
         authService.requireAdmin(token);
         User user = userService.register(req, UserRole.ADMIN);
-        return success("管理员注册成功", userMap(user));
+        return ApiResponse.success("管理员注册成功", userMap(user));
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@Valid @RequestBody LoginRequest req) {
+    public ApiResponse<Map<String, Object>> login(@Valid @RequestBody LoginRequest req) {
         User user = userService.login(req.getUsername(), req.getPassword());
-        String token = authService.issueToken(user);
+        String accessToken = authService.issueAccessToken(user);
+        String refreshToken = authService.issueRefreshToken(user);
 
         Map<String, Object> data = userMap(user);
-        data.put("token", token);
-        return success("登录成功", data);
+        data.put("accessToken", accessToken);
+        data.put("refreshToken", refreshToken);
+        data.put("token", accessToken);
+        return ApiResponse.success("登录成功", data);
     }
 
-    private Map<String, Object> success(String message, Object data) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", message);
-        result.put("data", data);
-        return result;
+    @PostMapping("/refresh")
+    public ApiResponse<Map<String, Object>> refresh(@Valid @RequestBody RefreshTokenRequest req) {
+        String accessToken = authService.refreshAccessToken(req.getRefreshToken());
+        return ApiResponse.success("刷新成功", Map.of("accessToken", accessToken, "token", accessToken));
     }
 
     private Map<String, Object> userMap(User user) {

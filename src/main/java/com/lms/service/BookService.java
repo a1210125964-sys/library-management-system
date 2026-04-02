@@ -90,6 +90,19 @@ public class BookService {
         );
     }
 
+    @Transactional
+    public void decreaseAvailableStockOrThrow(Long bookId) {
+        int updated = bookRepository.decreaseAvailableStockIfEnough(bookId);
+        if (updated == 0) {
+            throw new BusinessException("库存不足，无法借阅");
+        }
+    }
+
+    @Transactional
+    public void increaseAvailableStock(Long bookId) {
+        bookRepository.increaseAvailableStock(bookId);
+    }
+
     private void merge(Book book, BookRequest req) {
         book.setTitle(req.getTitle());
         book.setAuthor(req.getAuthor());

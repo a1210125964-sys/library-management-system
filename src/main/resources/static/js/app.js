@@ -1,5 +1,6 @@
 const state = {
   token: localStorage.getItem("token") || "",
+  refreshToken: localStorage.getItem("refreshToken") || "",
   user: JSON.parse(localStorage.getItem("user") || "null"),
   categories: [],
   users: [],
@@ -82,8 +83,10 @@ function renderTableState(tbodyId, colspan, message, type = "empty") {
 
 function clearSession() {
   state.token = "";
+  state.refreshToken = "";
   state.user = null;
   localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
 }
 

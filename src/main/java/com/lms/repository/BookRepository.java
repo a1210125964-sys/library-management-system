@@ -20,6 +20,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query("update Book b set b.category = :newName where b.category = :oldName")
     int renameCategory(@Param("oldName") String oldName, @Param("newName") String newName);
 
+    @Modifying
+    @Query("update Book b set b.availableStock = b.availableStock - 1, b.updatedAt = CURRENT_TIMESTAMP where b.id = :bookId and b.availableStock > 0")
+    int decreaseAvailableStockIfEnough(@Param("bookId") Long bookId);
+
+    @Modifying
+    @Query("update Book b set b.availableStock = b.availableStock + 1, b.updatedAt = CURRENT_TIMESTAMP where b.id = :bookId and b.availableStock < b.stock")
+    int increaseAvailableStock(@Param("bookId") Long bookId);
+
     List<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCaseOrCategoryContainingIgnoreCase(
         String title, String author, String isbn, String category
     );

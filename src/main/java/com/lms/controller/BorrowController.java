@@ -1,5 +1,6 @@
 package com.lms.controller;
 
+import com.lms.dto.ApiResponse;
 import com.lms.model.BorrowRecord;
 import com.lms.model.OverdueRecord;
 import com.lms.model.User;
@@ -25,52 +26,45 @@ public class BorrowController {
     }
 
     @PostMapping("/{bookId}")
-    public Map<String, Object> borrow(@RequestHeader("X-Token") String token, @PathVariable Long bookId) {
+    public ApiResponse<Map<String, Object>> borrow(@RequestHeader("X-Token") String token, @PathVariable Long bookId) {
         User user = authService.requireUser(token);
         BorrowRecord record = borrowService.borrow(user, bookId);
-        return success("借阅成功", recordMap(record));
+        return ApiResponse.success("借阅成功", recordMap(record));
     }
 
     @PostMapping("/return/{recordId}")
-    public Map<String, Object> returnBook(@RequestHeader("X-Token") String token, @PathVariable Long recordId) {
+    public ApiResponse<Map<String, Object>> returnBook(@RequestHeader("X-Token") String token, @PathVariable Long recordId) {
         User user = authService.requireUser(token);
         BorrowRecord record = borrowService.returnBook(user, recordId);
-        return success("归还成功", recordMap(record));
+        return ApiResponse.success("归还成功", recordMap(record));
     }
 
     @PostMapping("/renew/{recordId}")
-    public Map<String, Object> renew(@RequestHeader("X-Token") String token, @PathVariable Long recordId) {
+    public ApiResponse<Map<String, Object>> renew(@RequestHeader("X-Token") String token, @PathVariable Long recordId) {
         User user = authService.requireUser(token);
         BorrowRecord record = borrowService.renew(user, recordId);
-        return success("续借成功", recordMap(record));
+        return ApiResponse.success("续借成功", recordMap(record));
     }
 
     @GetMapping("/my")
-    public Map<String, Object> myRecords(@RequestHeader("X-Token") String token) {
+    public ApiResponse<List<Map<String, Object>>> myRecords(@RequestHeader("X-Token") String token) {
         User user = authService.requireUser(token);
         List<Map<String, Object>> data = borrowService.myRecords(user).stream().map(this::recordMap).collect(Collectors.toList());
-        return success("查询成功", data);
+        return ApiResponse.success("查询成功", data);
     }
 
     @GetMapping("/my-overdue")
-    public Map<String, Object> myOverdue(@RequestHeader("X-Token") String token) {
+    public ApiResponse<List<Map<String, Object>>> myOverdue(@RequestHeader("X-Token") String token) {
         User user = authService.requireUser(token);
         List<Map<String, Object>> data = borrowService.myOverdueRecords(user).stream().map(this::overdueMap).collect(Collectors.toList());
-        return success("查询成功", data);
+        return ApiResponse.success("查询成功", data);
     }
 
     @PostMapping("/scan-overdue")
-    public Map<String, Object> scanOverdue(@RequestHeader("X-Token") String token) {
+    public ApiResponse<Map<String, Object>> scanOverdue(@RequestHeader("X-Token") String token) {
         authService.requireAdmin(token);
         int updated = borrowService.markOverdueRecords();
-        return success("逾期扫描完成", Map.of("updatedCount", updated));
-    }
-
-    private Map<String, Object> success(String message, Object data) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", message);
-        result.put("data", data);
-        return result;
+        return ApiResponse.success("逾期扫描完成", Map.of("updatedCount", updated));
     }
 
     private Map<String, Object> recordMap(BorrowRecord record) {

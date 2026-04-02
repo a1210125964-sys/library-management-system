@@ -1,6 +1,7 @@
 package com.lms.controller;
 
 import com.lms.dto.BookRequest;
+import com.lms.dto.ApiResponse;
 import com.lms.model.Book;
 import com.lms.model.User;
 import com.lms.service.AdminLogService;
@@ -30,55 +31,42 @@ public class BookController {
     }
 
     @GetMapping
-    public Map<String, Object> list(@RequestParam(required = false) String keyword,
-                                    @RequestParam(required = false) Integer page,
-                                    @RequestParam(required = false) Integer size) {
+    public ApiResponse<List<Map<String, Object>>> list(@RequestParam(required = false) String keyword,
+                                                       @RequestParam(required = false) Integer page,
+                                                       @RequestParam(required = false) Integer size) {
         if (page != null && size != null) {
             Page<Book> result = bookService.listPage(keyword, page, size);
             List<Map<String, Object>> data = result.getContent().stream().map(this::bookMap).collect(Collectors.toList());
-            return success("查询成功", data, pagination(result));
+            return ApiResponse.success("查询成功", data, pagination(result));
         }
         List<Map<String, Object>> data = bookService.list(keyword).stream().map(this::bookMap).collect(Collectors.toList());
-        return success("查询成功", data);
+        return ApiResponse.success("查询成功", data);
     }
 
     @PostMapping
-    public Map<String, Object> create(@RequestHeader("X-Token") String token, @Valid @RequestBody BookRequest req) {
+    public ApiResponse<Map<String, Object>> create(@RequestHeader("X-Token") String token, @Valid @RequestBody BookRequest req) {
         User admin = authService.requireAdmin(token);
         Book book = bookService.create(req);
         adminLogService.log(admin, "新增图书", "bookId=" + book.getId());
-        return success("创建成功", bookMap(book));
+        return ApiResponse.success("创建成功", bookMap(book));
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> update(@RequestHeader("X-Token") String token,
-                                      @PathVariable Long id,
-                                      @Valid @RequestBody BookRequest req) {
+    public ApiResponse<Map<String, Object>> update(@RequestHeader("X-Token") String token,
+                                                   @PathVariable Long id,
+                                                   @Valid @RequestBody BookRequest req) {
         User admin = authService.requireAdmin(token);
         Book book = bookService.update(id, req);
         adminLogService.log(admin, "更新图书", "bookId=" + id);
-        return success("更新成功", bookMap(book));
+        return ApiResponse.success("更新成功", bookMap(book));
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, Object> delete(@RequestHeader("X-Token") String token, @PathVariable Long id) {
+    public ApiResponse<Object> delete(@RequestHeader("X-Token") String token, @PathVariable Long id) {
         User admin = authService.requireAdmin(token);
         bookService.delete(id);
         adminLogService.log(admin, "删除图书", "bookId=" + id);
-        return success("删除成功", null);
-    }
-
-    private Map<String, Object> success(String message, Object data) {
-        Map<String, Object> result = new HashMap<>();
-        result.put("message", message);
-        result.put("data", data);
-        return result;
-    }
-
-    private Map<String, Object> success(String message, Object data, Map<String, Object> pagination) {
-        Map<String, Object> result = success(message, data);
-        result.put("pagination", pagination);
-        return result;
+        return ApiResponse.success("删除成功", null);
     }
 
     private Map<String, Object> pagination(Page<?> page) {

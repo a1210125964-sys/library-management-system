@@ -3,29 +3,36 @@ package com.lms.service;
 import com.lms.exception.BusinessException;
 import com.lms.model.User;
 import com.lms.model.UserRole;
-import org.springframework.beans.factory.annotation.Value;
+import com.lms.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
 
-    private final Map<String, TokenSession> tokenStore = new ConcurrentHashMap<>();
-    private final long tokenExpireHours;
+    private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public AuthService(@Value("${app.auth.token-expire-hours:12}") long tokenExpireHours) {
-        this.tokenExpireHours = tokenExpireHours;
+    public AuthService(JwtService jwtService, UserRepository userRepository) {
+        this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
-    public String issueToken(User user) {
-        String token = UUID.randomUUID().toString();
-        tokenStore.put(token, new TokenSession(user, LocalDateTime.now().plusHours(Math.max(1, tokenExpireHours))));
-        return token;
+    public String issueAccessToken(User user) {
+        return jwtService.createAccessToken(user);
+    }
+
+    public String issueRefreshToken(User user) {
+        return jwtService.createRefreshToken(user);
+    }
+
+    public String refreshAccessToken(String refreshToken) {
+        Long userId = jwtService.parseRefreshTokenUserId(refreshToken)
+            .orElseThrow(() -> new BusinessException("刷新令牌无效或已过期"));
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException("用户不存在或已被删除"));
+        return issueAccessToken(user);
     }
 
     public User requireUser(String token) {
@@ -43,15 +50,7 @@ public class AuthService {
         if (token == null || token.isBlank()) {
             return Optional.empty();
         }
-        TokenSession session = tokenStore.get(token);
-        if (session == null) {
-            return Optional.empty();
-        }
-        if (session.expireAt().isBefore(LocalDateTime.now())) {
-            tokenStore.remove(token);
-            return Optional.empty();
-        }
-        return Optional.of(session.user());
+        return jwtService.parseAccessTokenUserId(token).flatMap(userRepository::findById);
     }
 
     public User requireAdmin(String token) {
@@ -60,8 +59,5 @@ public class AuthService {
             throw new BusinessException("仅管理员可执行此操作");
         }
         return user;
-    }
-
-    private record TokenSession(User user, LocalDateTime expireAt) {
     }
 }
