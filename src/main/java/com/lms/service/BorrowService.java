@@ -127,9 +127,15 @@ public class BorrowService {
     }
 
     public Page<BorrowRecord> myHistoryPaged(User user, int page, int size) {
+        if (page < 0) {
+            throw new BusinessException("分页参数 page 不能小于 0");
+        }
+        if (size <= 0 || size > 100) {
+            throw new BusinessException("分页参数 size 必须在 1 到 100 之间");
+        }
         return borrowRecordRepository.findByUserAndStatusInOrderByBorrowTimeDesc(
             user,
-            List.of(BorrowStatus.RETURNED, BorrowStatus.OVERDUE),
+            List.of(BorrowStatus.RETURNED),
             PageRequest.of(page, size)
         );
     }

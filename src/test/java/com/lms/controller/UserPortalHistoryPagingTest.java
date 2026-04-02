@@ -1,5 +1,6 @@
 package com.lms.controller;
 
+import com.lms.exception.BusinessException;
 import com.lms.model.BorrowRecord;
 import com.lms.model.BorrowStatus;
 import com.lms.model.Book;
@@ -64,6 +65,22 @@ class UserPortalHistoryPagingTest {
             .andExpect(jsonPath("$.pagination").exists())
             .andExpect(jsonPath("$.pagination.page").value(0))
             .andExpect(jsonPath("$.pagination.size").value(10));
+    }
+
+    @Test
+    void history_should_return_business_error_when_page_is_negative() throws Exception {
+        User user = buildUser();
+
+        Mockito.when(authService.requireUser("token")).thenReturn(user);
+        Mockito.when(borrowService.myHistoryPaged(user, -1, 10))
+            .thenThrow(new BusinessException("分页参数 page 不能小于 0"));
+
+        mockMvc.perform(get("/api/user/history")
+                .header("X-Token", "token")
+                .queryParam("page", "-1")
+                .queryParam("size", "10"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
     }
 
     private User buildUser() {
