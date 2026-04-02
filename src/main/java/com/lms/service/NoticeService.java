@@ -58,4 +58,8 @@ public class NoticeService {
         }
         return notice;
     }
+
+    public long countPublished() {
+        return noticeRepository.countByPublishedTrue();
+    }
 }

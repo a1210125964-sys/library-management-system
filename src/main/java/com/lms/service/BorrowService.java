@@ -121,6 +121,14 @@ public class BorrowService {
         return overdueRecordRepository.findByUserWithDetails(user);
     }
 
+    public long countActiveByUser(Long userId) {
+        return borrowRecordRepository.countByUserIdAndStatusIn(userId, List.of(BorrowStatus.BORROWED, BorrowStatus.OVERDUE));
+    }
+
+    public long countOverdueByUser(Long userId) {
+        return borrowRecordRepository.countByUserIdAndStatus(userId, BorrowStatus.OVERDUE);
+    }
+
     private BorrowRecord findOwnedRecord(User user, Long recordId) {
         BorrowRecord record = borrowRecordRepository.findById(recordId)
             .orElseThrow(() -> new BusinessException("借阅记录不存在"));
