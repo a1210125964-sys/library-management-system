@@ -36,7 +36,7 @@ public class UserPortalController {
         Map<String, Object> data = new HashMap<>();
         data.put("activeBorrowCount", borrowService.countActiveByUser(user.getId()));
         data.put("overdueCount", borrowService.countOverdueByUser(user.getId()));
-        data.put("unreadNoticeCount", noticeService.countPublished());
+        data.put("publishedNoticeCount", noticeService.countPublished());
 
         return ApiResponse.success("查询成功", data);
     }

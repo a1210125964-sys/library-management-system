@@ -48,6 +48,7 @@ class UserPortalControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value("SUCCESS"))
             .andExpect(jsonPath("$.data.activeBorrowCount").value(2))
-            .andExpect(jsonPath("$.data.overdueCount").value(1));
+            .andExpect(jsonPath("$.data.overdueCount").value(1))
+            .andExpect(jsonPath("$.data.publishedNoticeCount").value(3));
     }
 }
