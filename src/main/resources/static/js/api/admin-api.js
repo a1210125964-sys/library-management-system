@@ -58,7 +58,10 @@
       },
 
       listRecords(_params) {
-        return Promise.reject(new Error("管理员借阅记录接口暂未开放"));
+        return Promise.resolve({
+          message: "管理员借阅记录接口暂未开放",
+          data: []
+        });
       }
     };
   };
