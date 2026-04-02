@@ -1,29 +1,13 @@
-const state = {
-  token: localStorage.getItem("token") || "",
-  refreshToken: localStorage.getItem("refreshToken") || "",
-  user: JSON.parse(localStorage.getItem("user") || "null"),
-  categories: [],
-  users: [],
-  editingBookId: null,
-  editingCategoryId: null,
-  activePage: "borrowQuery",
-  theme: localStorage.getItem("theme") || "system",
-  borrowInventoryPage: 1,
-  borrowInventoryPageSize: 5,
-  borrowInventoryTotalPages: 1,
-  adminBooks: [],
-  adminBookPage: 1,
-  adminBookPageSize: 8,
-  adminBookSortKey: "id",
-  adminBookSortOrder: "asc",
-  adminSelectedBookIds: new Set(),
-  studentPage: 1,
-  studentPageSize: 10,
-  studentTotalPages: 1,
-  adminLogPage: 1,
-  adminLogPageSize: 10,
-  adminLogTotalPages: 1
-};
+const state = window.AppState.createInitialState();
+const req = window.HttpClient.create({
+  getToken: () => state.token,
+  onUnauthorized: () => {
+    window.AppState.clearSession(state);
+    if (!window.location.pathname.endsWith("/login.html")) {
+      window.location.href = "/login.html";
+    }
+  }
+});
 
 function setHidden(id, hidden) {
   const el = document.getElementById(id);
@@ -82,12 +66,7 @@ function renderTableState(tbodyId, colspan, message, type = "empty") {
 }
 
 function clearSession() {
-  state.token = "";
-  state.refreshToken = "";
-  state.user = null;
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+  window.AppState.clearSession(state);
 }
 
 function logout() {
@@ -96,33 +75,11 @@ function logout() {
 }
 
 function show(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.style.opacity = "1";
-  setTimeout(() => {
-    toast.style.opacity = "0";
-  }, 1800);
-}
-
-async function req(url, method = "GET", body = null) {
-  const headers = { "Content-Type": "application/json" };
-  if (state.token) {
-    headers["X-Token"] = state.token;
-  }
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : null
-  });
-  const data = await res.json().catch(() => ({ message: "请求失败" }));
-  if (!res.ok) {
-    throw new Error(data.message || "请求失败");
-  }
-  return data;
+  window.Toast.show(msg);
 }
 
 function isAdmin() {
-  return state.user && state.user.role === "ADMIN";
+  return window.AuthCore.isAdmin(state.user);
 }
 
 function switchPage(page) {
@@ -193,29 +150,29 @@ function refreshUI() {
 }
 
 async function loadPageData(page) {
-  if (page === "borrowQuery") {
-    await loadBorrowQueryRecords();
-    await loadBorrowInventoryBooks(true);
-    return;
-  }
-  if (page === "returnBook") {
-    await loadReturnableRecords();
+  const borrowHandled = await window.BorrowPage.load(page, {
+    loadBorrowQueryRecords,
+    loadBorrowInventoryBooks,
+    loadReturnableRecords
+  });
+  if (borrowHandled) {
     return;
   }
   if (!isAdmin()) {
     return;
   }
-  if (page === "studentManage") {
-    await loadStudentUsers();
-  } else if (page === "bookManage") {
-    await loadCategories();
-    await loadAdminBooks();
-  } else if (page === "addBook") {
-    await loadCategories();
-    syncCategoryOptionsToAddBook();
-  } else if (page === "addAdmin") {
-    await loadAdminUsers();
+  const adminBookHandled = await window.AdminBookPage.load(page, {
+    loadCategories,
+    loadAdminBooks,
+    syncCategoryOptionsToAddBook
+  });
+  if (adminBookHandled) {
+    return;
   }
+  await window.AdminUserPage.load(page, {
+    loadStudentUsers,
+    loadAdminUsers
+  });
 }
 
 async function validateSessionOnStartup() {

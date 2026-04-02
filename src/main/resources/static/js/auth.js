@@ -1,14 +1,8 @@
-const state = {
-  token: localStorage.getItem("token") || "",
-  refreshToken: localStorage.getItem("refreshToken") || "",
-  user: JSON.parse(localStorage.getItem("user") || "null")
-};
+const state = window.AppState.createInitialState();
+const req = window.HttpClient.create();
 
 function show(msg) {
-  const toast = document.getElementById("toast");
-  toast.textContent = msg;
-  toast.style.opacity = "1";
-  setTimeout(() => toast.style.opacity = "0", 1800);
+  window.Toast.show(msg);
 }
 
 function setPrimaryButtonLoading(loading) {
@@ -28,16 +22,19 @@ function setPrimaryButtonLoading(loading) {
   }
 }
 
-async function req(url, method = "GET", body = null) {
-  const headers = { "Content-Type": "application/json" };
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : null
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "请求失败");
-  return data;
+function validateRegisterForm({ username, realName, phone, idCard, password }) {
+  if (!username || !realName || !phone || !idCard || !password) {
+    throw new Error("请完整填写注册信息");
+  }
+  if (username.length < 3 || username.length > 50) {
+    throw new Error("用户名长度需在 3~50 位之间");
+  }
+  if (!/^1\d{10}$/.test(phone)) {
+    throw new Error("请输入合法的 11 位手机号");
+  }
+  if (password.length < 6) {
+    throw new Error("密码长度不能少于 6 位");
+  }
 }
 
 async function login() {
@@ -77,9 +74,7 @@ async function register() {
     const phone = document.getElementById("phone").value.trim();
     const idCard = document.getElementById("idCard").value.trim();
     const password = document.getElementById("password").value.trim();
-    if (!username || !realName || !phone || !idCard || !password) {
-      throw new Error("请完整填写注册信息");
-    }
+    validateRegisterForm({ username, realName, phone, idCard, password });
     await req("/api/auth/register", "POST", { username, realName, phone, idCard, password });
     show("注册成功，正在跳转登录");
     setTimeout(() => {
