@@ -17,11 +17,7 @@
   const statsApiUrl = buildAppUrl("/api/admin/stats");
   const noticesApiUrl = buildAppUrl("/api/admin/notices?page=0&size=5");
 
-  const clearSession = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-  };
+  const clearSession = () => window.PageGuards.clearSession();
 
   const token = localStorage.getItem("token") || "";
   let user = null;
