@@ -6,126 +6,97 @@
     <title>图书管理系统 - 入口升级提示</title>
     <style>
         :root {
-            color-scheme: light dark;
-            --bg: #f6f8fb;
+            color-scheme: light;
+            --bg: #f3f4f6;
             --card: #ffffff;
-            --text: #1f2937;
+            --text: #111827;
             --muted: #6b7280;
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
             --secondary: #e5e7eb;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f172a;
-                --card: #111827;
-                --text: #e5e7eb;
-                --muted: #9ca3af;
-                --primary: #3b82f6;
-                --primary-hover: #60a5fa;
-                --secondary: #374151;
-            }
+            --secondary-hover: #d1d5db;
         }
 
         * {
             box-sizing: border-box;
         }
 
-            <div class="field floating"><input id="categoryName" placeholder=" " /><label for="categoryName">分类名称</label></div>
-            <div class="field floating"><input id="categoryDescription" placeholder=" " /><label for="categoryDescription">分类说明</label></div>
-        </div>
-        <div class="row">
-            <button class="btn" type="button" onclick="createOrUpdateCategory()">保存分类</button>
-            <button class="btn btn-secondary" type="button" onclick="resetCategoryForm()">重置分类</button>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                <tr>
-                    <th>ID</th><th>分类名称</th><th>说明</th><th>操作</th>
-                </tr>
-                </thead>
-                <tbody id="categoryTable"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div id="bookModal" class="modal hidden">
-    <div class="modal-card">
-        <div class="panel-head">
-            <h3 id="bookModalTitle">添加图书</h3>
-            <button class="btn btn-secondary" type="button" onclick="closeBookModal()">关闭</button>
-        </div>
-        <div class="floating-grid">
-            <div class="field floating"><input id="bookTitle" placeholder=" " /><label for="bookTitle">书名</label></div>
-            <div class="field floating"><input id="bookAuthor" placeholder=" " /><label for="bookAuthor">作者</label></div>
-            <div class="field floating"><input id="bookPublisher" placeholder=" " /><label for="bookPublisher">出版社</label></div>
-            <div class="field floating"><input id="bookIsbn" placeholder=" " /><label for="bookIsbn">ISBN</label></div>
-            <div class="field"><select id="bookCategory"></select></div>
-            <div class="field floating"><input id="bookStock" type="number" min="0" placeholder=" " /><label for="bookStock">库存</label></div>
-        </div>
-        <div class="row">
-            <button class="btn" type="button" onclick="createOrUpdateBook()">保存图书</button>
-            <button class="btn btn-secondary" type="button" onclick="resetBookForm()">清空表单</button>
-        </div>
-    </div>
-</div>
-
-<div id="categoryModal" class="modal hidden">
-    <div class="modal-card">
-        <div class="panel-head">
-            <h3>快速添加分类</h3>
-            <button class="btn btn-secondary" type="button" onclick="closeCategoryModal()">关闭</button>
-        </div>
-        <div class="floating-grid two-cols">
-            <div class="field floating"><input id="quickCategoryName" placeholder=" " /><label for="quickCategoryName">分类名称</label></div>
-            <div class="field floating"><input id="quickCategoryDescription" placeholder=" " /><label for="quickCategoryDescription">分类说明</label></div>
-        </div>
-        <div class="row">
-            <button class="btn" type="button" onclick="createCategoryFromModal()">保存分类</button>
-        </div>
-    </div>
-</div>
-
-<div id="toast" aria-live="polite"></div>
-<script src="/js/core/state.js"></script>
-<script src="/js/core/auth.js"></script>
-<script src="/js/core/http.js"></script>
-<script src="/js/ui/toast.js"></script>
-<script src="/js/pages/borrow.js"></script>
-<script src="/js/pages/admin-books.js"></script>
-<script src="/js/pages/admin-users.js"></script>
-<script>
-    (function initAdminEntryGuide() {
-        const params = new URLSearchParams(window.location.search || "");
-        const legacyMode = params.get("legacy") === "1";
-        const guideText = document.getElementById("adminUpgradeText");
-
-        if (legacyMode && guideText) {
-            guideText.textContent = "当前处于旧版兼容模式（legacy=1）。如需体验新版后台，请点击“进入新版后台”。";
-            return;
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
         }
 
-        const token = localStorage.getItem("token") || "";
-        if (!token) {
-            return;
+        .card {
+            width: min(640px, 92vw);
+            background: var(--card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         }
 
-        let user = null;
-        try {
-            user = JSON.parse(localStorage.getItem("user") || "null");
-        } catch (_error) {
-            return;
+        h1 {
+            margin: 0 0 12px;
+            font-size: 24px;
         }
 
-        if (user && user.role === "ADMIN") {
-            window.location.replace("/admin/index.html");
+        p {
+            margin: 0 0 12px;
+            line-height: 1.6;
         }
-    })();
-</script>
-<script src="/js/app.js"></script>
-legacy-admin-shell deprecated: end -->
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>图书管理系统 - 入口升级提示</h1>
+        <p>/index.html 已降级为兼容跳转页。</p>
+        <div class="actions">
+            <a class="btn btn-primary" href="/admin/index.html">进入后台管理</a>
+            <a class="btn btn-secondary" href="/home.html">进入门户首页</a>
+        </div>
+        <p class="hint">如您已收藏旧入口，请更新为新版地址，避免后续访问中断。</p>
+    </main>
 </body>
 </html>
