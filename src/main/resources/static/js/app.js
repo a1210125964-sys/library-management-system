@@ -446,34 +446,12 @@ function fillAdminBookSuggest(books) {
 function getFilteredSortedAdminBooks() {
   const keyword = (document.getElementById("adminBookKeyword")?.value || "").trim().toLowerCase();
   const category = document.getElementById("adminCategoryFilter")?.value || "";
-  const publisherKeyword = (document.getElementById("advancedPublisher")?.value || "").trim().toLowerCase();
-  const stockMinRaw = document.getElementById("advancedStockMin")?.value;
-  const stockMaxRaw = document.getElementById("advancedStockMax")?.value;
-  const stockMin = stockMinRaw === "" || stockMinRaw == null ? null : Number(stockMinRaw);
-  const stockMax = stockMaxRaw === "" || stockMaxRaw == null ? null : Number(stockMaxRaw);
   const filtered = state.adminBooks.filter(b => {
     const hitCategory = !category || b.category === category;
     if (!hitCategory) {
       return false;
     }
-    if (!keyword) {
-      return true;
-    }
-    const hitKeyword = !keyword || [b.title, b.author, b.isbn, b.category].some(v => String(v || "").toLowerCase().includes(keyword));
-    if (!hitKeyword) {
-      return false;
-    }
-    const hitPublisher = !publisherKeyword || String(b.publisher || "").toLowerCase().includes(publisherKeyword);
-    if (!hitPublisher) {
-      return false;
-    }
-    if (stockMin !== null && Number(b.stock || 0) < stockMin) {
-      return false;
-    }
-    if (stockMax !== null && Number(b.stock || 0) > stockMax) {
-      return false;
-    }
-    return true;
+    return !keyword || [b.title, b.author, b.isbn, b.category].some(v => String(v || "").toLowerCase().includes(keyword));
   });
   const { adminBookSortKey: key, adminBookSortOrder: order } = state;
   filtered.sort((a, b) => {
@@ -714,28 +692,9 @@ function resetBookManageFilter() {
   if (category) {
     category.value = "";
   }
-  const publisher = document.getElementById("advancedPublisher");
-  const stockMin = document.getElementById("advancedStockMin");
-  const stockMax = document.getElementById("advancedStockMax");
-  if (publisher) publisher.value = "";
-  if (stockMin) stockMin.value = "";
-  if (stockMax) stockMax.value = "";
   state.adminBookPage = 1;
   state.adminSelectedBookIds.clear();
   loadAdminBooks(true);
-}
-
-function toggleAdvancedFilter() {
-  const panel = document.getElementById("advancedFilterPanel");
-  if (!panel) {
-    return;
-  }
-  const btn = document.getElementById("advancedFilterBtn");
-  const willOpen = panel.classList.contains("hidden");
-  panel.classList.toggle("hidden", !willOpen);
-  if (btn) {
-    btn.textContent = willOpen ? "收起高级筛选" : "高级筛选";
-  }
 }
 
 async function batchDeleteBooks() {
@@ -1278,15 +1237,6 @@ function initBorrowInventorySearch() {
       renderAdminBookTable();
     });
   }
-  ["advancedPublisher", "advancedStockMin", "advancedStockMax"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("input", () => {
-        state.adminBookPage = 1;
-        renderAdminBookTable();
-      });
-    }
-  });
   const jumpPage = document.getElementById("adminBookJumpPage");
   if (jumpPage) {
     jumpPage.addEventListener("keydown", (e) => {

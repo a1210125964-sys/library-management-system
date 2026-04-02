@@ -149,7 +149,6 @@
                         </div>
                         <select id="adminCategoryFilter"></select>
                         <button class="btn" type="button" onclick="loadAdminBooks(true)">查询</button>
-                        <button id="advancedFilterBtn" class="btn btn-secondary" type="button" onclick="toggleAdvancedFilter()">高级筛选</button>
                     </div>
                     <div class="toolbar-right">
                         <button class="btn btn-secondary" type="button" onclick="resetBookManageFilter()">刷新列表</button>
@@ -160,19 +159,6 @@
                 </div>
 
                 <div id="adminCategoryQuick" class="row compact category-quick"></div>
-
-                <div id="advancedFilterPanel" class="advanced-filter hidden">
-                    <div class="floating-grid two-cols">
-                        <div class="field floating">
-                            <input id="advancedPublisher" placeholder=" " />
-                            <label for="advancedPublisher">出版社关键词</label>
-                        </div>
-                        <div class="row compact">
-                            <div class="field floating"><input id="advancedStockMin" type="number" min="0" placeholder=" " /><label for="advancedStockMin">库存下限</label></div>
-                            <div class="field floating"><input id="advancedStockMax" type="number" min="0" placeholder=" " /><label for="advancedStockMax">库存上限</label></div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="table-wrap admin-table-main">
                     <table>
