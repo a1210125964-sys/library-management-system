@@ -63,6 +63,12 @@ $env:DB_USERNAME="root"; $env:DB_PASSWORD="你的密码"; mvn spring-boot:run
 
 http://localhost:8080
 
+### 新页面入口
+
+- 门户：`/home.html`
+- 用户中心：`/user/dashboard.html`
+- 管理后台：`/admin/index.html`
+
 ## 3. 默认管理员
 
 - 用户名：admin

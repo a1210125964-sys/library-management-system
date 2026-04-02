@@ -1,5 +1,6 @@
 package com.lms.controller;
 
+import com.lms.exception.BusinessException;
 import com.lms.model.Notice;
 import com.lms.model.User;
 import com.lms.model.UserRole;
@@ -241,5 +242,21 @@ class AdminNoticeControllerTest {
                 .content("{\"title\":\"系统维护\",\"summary\":\"摘要\",\"content\":\"正文\",\"published\":true}"))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value("AUTH_REQUIRED"));
+    }
+
+    @Test
+    void create_notice_should_reject_non_admin_user() throws Exception {
+        Mockito.when(authService.requireAdmin("user-token"))
+            .thenThrow(new BusinessException("仅管理员可执行此操作"));
+
+        mockMvc.perform(post("/api/admin/notices")
+                .header("X-Token", "user-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"系统维护\",\"summary\":\"摘要\",\"content\":\"正文\",\"published\":true}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"))
+            .andExpect(jsonPath("$.message").value("仅管理员可执行此操作"));
+
+        verify(noticeService, never()).create(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 }
