@@ -5,10 +5,30 @@
     document.documentElement.setAttribute("data-theme", savedTheme);
   }
 
-  const currentPath = window.location.pathname;
+  const normalizePath = (path) => {
+    if (!path) {
+      return "/";
+    }
+
+    const cleaned = path.split("?")[0].split("#")[0] || "/";
+    if (cleaned === "/") {
+      return "/";
+    }
+
+    return cleaned.endsWith("/") ? cleaned.slice(0, -1) : cleaned;
+  };
+
+  const currentPath = normalizePath(window.location.pathname);
   document.querySelectorAll(".site-nav a").forEach((link) => {
-    if (link.getAttribute("href") === currentPath) {
+    const href = link.getAttribute("href") || "";
+    const linkPath = normalizePath(new URL(href, window.location.origin).pathname);
+
+    if (linkPath === currentPath) {
       link.classList.add("is-active");
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.classList.remove("is-active");
+      link.removeAttribute("aria-current");
     }
   });
 
