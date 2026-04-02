@@ -154,26 +154,53 @@ public class AdminController {
 
     @PostMapping("/notices")
     public ApiResponse<Map<String, Object>> createNotice(@RequestHeader("X-Token") String token,
-                                                          @Valid @RequestBody NoticeRequest req) {
+                                                          @Valid @RequestBody NoticeRequest req,
+                                                          HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         Notice notice = noticeService.create(req, admin);
+        adminLogService.log(admin,
+            "创建公告",
+            "noticeId=" + notice.getId(),
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
         return ApiResponse.success("创建成功", noticeMap(notice));
     }
 
     @PutMapping("/notices/{id}")
     public ApiResponse<Map<String, Object>> updateNotice(@RequestHeader("X-Token") String token,
                                                           @PathVariable Long id,
-                                                          @Valid @RequestBody NoticeRequest req) {
+                                                          @Valid @RequestBody NoticeRequest req,
+                                                          HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         Notice notice = noticeService.update(id, req, admin);
+        adminLogService.log(admin,
+            "更新公告",
+            "noticeId=" + id,
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
         return ApiResponse.success("更新成功", noticeMap(notice));
     }
 
     @DeleteMapping("/notices/{id}")
     public ApiResponse<Object> deleteNotice(@RequestHeader("X-Token") String token,
-                                            @PathVariable Long id) {
+                                            @PathVariable Long id,
+                                            HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         noticeService.delete(id, admin);
+        adminLogService.log(admin,
+            "删除公告",
+            "noticeId=" + id,
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
         return ApiResponse.success("删除成功", null);
     }
 

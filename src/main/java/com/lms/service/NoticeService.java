@@ -4,6 +4,7 @@ import com.lms.dto.NoticeRequest;
 import com.lms.exception.BusinessException;
 import com.lms.model.Notice;
 import com.lms.model.User;
+import com.lms.model.UserRole;
 import com.lms.repository.NoticeRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,9 +26,7 @@ public class NoticeService {
 
     @Transactional
     public Notice create(NoticeRequest req, User adminUser) {
-        if (adminUser == null) {
-            throw new BusinessException("管理员不存在");
-        }
+        validateAdmin(adminUser);
 
         Notice notice = new Notice();
         notice.setTitle(req.getTitle());
@@ -46,9 +45,7 @@ public class NoticeService {
 
     @Transactional
     public Notice update(Long id, NoticeRequest req, User adminUser) {
-        if (adminUser == null) {
-            throw new BusinessException("管理员不存在");
-        }
+        validateAdmin(adminUser);
 
         Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
         notice.setTitle(req.getTitle());
@@ -69,9 +66,7 @@ public class NoticeService {
 
     @Transactional
     public void delete(Long id, User adminUser) {
-        if (adminUser == null) {
-            throw new BusinessException("管理员不存在");
-        }
+        validateAdmin(adminUser);
 
         Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
         noticeRepository.delete(notice);
@@ -101,5 +96,14 @@ public class NoticeService {
 
     public long countPublished() {
         return noticeRepository.countByPublishedTrue();
+    }
+
+    private void validateAdmin(User adminUser) {
+        if (adminUser == null) {
+            throw new BusinessException("管理员不存在");
+        }
+        if (adminUser.getRole() != UserRole.ADMIN) {
+            throw new BusinessException("仅管理员可执行此操作");
+        }
     }
 }

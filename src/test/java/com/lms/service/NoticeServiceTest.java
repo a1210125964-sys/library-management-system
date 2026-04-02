@@ -38,12 +38,17 @@ class NoticeServiceTest {
     private NoticeService noticeService;
 
     private User adminUser;
+    private User normalUser;
 
     @BeforeEach
     void setUp() {
         adminUser = new User();
         adminUser.setId(1L);
         adminUser.setRole(UserRole.ADMIN);
+
+        normalUser = new User();
+        normalUser.setId(2L);
+        normalUser.setRole(UserRole.USER);
     }
 
     @Test
@@ -78,6 +83,25 @@ class NoticeServiceTest {
         NoticeRequest req = new NoticeRequest("开馆通知", "摘要", "正文", true);
 
         assertThrows(BusinessException.class, () -> noticeService.create(req, null));
+    }
+
+    @Test
+    void create_should_throw_when_operator_is_not_admin() {
+        NoticeRequest req = new NoticeRequest("开馆通知", "摘要", "正文", true);
+
+        assertThrows(BusinessException.class, () -> noticeService.create(req, normalUser));
+    }
+
+    @Test
+    void update_should_throw_when_operator_is_not_admin() {
+        NoticeRequest req = new NoticeRequest("开馆通知", "摘要", "正文", true);
+
+        assertThrows(BusinessException.class, () -> noticeService.update(1L, req, normalUser));
+    }
+
+    @Test
+    void delete_should_throw_when_operator_is_not_admin() {
+        assertThrows(BusinessException.class, () -> noticeService.delete(1L, normalUser));
     }
 
     @Test
