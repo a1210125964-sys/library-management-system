@@ -13,11 +13,6 @@
     return `${appBasePath}${normalizedPath}`;
   };
   const loginUrl = buildAppUrl("/login.html");
-  const dashboardApiUrl = buildAppUrl("/api/user/dashboard");
-  const borrowingsApiUrl = buildAppUrl("/api/user/borrowings");
-  const historyApiUrl = buildAppUrl("/api/user/history");
-  const finesApiUrl = buildAppUrl("/api/user/fines");
-  const profileApiUrl = buildAppUrl("/api/user/profile");
 
   const clearSession = () => {
     localStorage.removeItem("token");
@@ -70,6 +65,7 @@
       redirectToLogin();
     }
   });
+  const userApi = window.UserApi.create(req, buildAppUrl);
 
   const escapeHtml = (value) => String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -106,7 +102,7 @@
       }
       empty.classList.add("hidden");
       tbody.innerHTML = rows.map((row) => `
-        <tr>
+        <tr data-record-id="${escapeHtml(row.id)}">
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
           <td>${formatDate(row.borrowTime)}</td>
@@ -119,7 +115,7 @@
 
     const loadBorrowings = async () => {
       try {
-        const res = await req(borrowingsApiUrl);
+        const res = await userApi.listBorrowings();
         render(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         if (empty) {
@@ -128,6 +124,60 @@
         }
       }
     };
+
+    const parseRecordId = (actionEl) => {
+      const fromAction = actionEl?.dataset?.recordId || actionEl?.getAttribute("data-record-id");
+      const fromRow = actionEl?.closest("tr")?.dataset?.recordId || actionEl?.closest("tr")?.getAttribute("data-record-id");
+      const raw = fromAction ?? fromRow;
+      const id = Number(raw);
+      return Number.isInteger(id) && id > 0 ? id : null;
+    };
+
+    const runBorrowAction = async (action, recordId, triggerEl) => {
+      if (triggerEl) {
+        triggerEl.disabled = true;
+      }
+      try {
+        if (action === "renew") {
+          await userApi.renewBorrow(recordId);
+        } else if (action === "return") {
+          await userApi.returnBorrow(recordId);
+        }
+        await loadBorrowings();
+      } catch (error) {
+        if (empty) {
+          empty.textContent = error.message || "借阅操作失败";
+          empty.classList.remove("hidden");
+        }
+      } finally {
+        if (triggerEl) {
+          triggerEl.disabled = false;
+        }
+      }
+    };
+
+    if (tbody) {
+      tbody.addEventListener("click", async (event) => {
+        const actionEl = event.target.closest("[data-action]");
+        if (!actionEl || !tbody.contains(actionEl)) {
+          return;
+        }
+        const action = String(actionEl.dataset.action || "").trim().toLowerCase();
+        if (action !== "renew" && action !== "return") {
+          return;
+        }
+        event.preventDefault();
+        const recordId = parseRecordId(actionEl);
+        if (!recordId) {
+          if (empty) {
+            empty.textContent = "借阅记录 ID 无效";
+            empty.classList.remove("hidden");
+          }
+          return;
+        }
+        await runBorrowAction(action, recordId, actionEl);
+      });
+    }
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadBorrowings);
@@ -163,14 +213,26 @@
       `).join("");
     };
 
-    const loadHistory = async () => {
+    const DEFAULT_PAGE = 0;
+    const DEFAULT_SIZE = 10;
+    let currentPage = DEFAULT_PAGE;
+    let currentSize = DEFAULT_SIZE;
+
+    const loadHistory = async ({ page = currentPage, size = currentSize } = {}) => {
       try {
-        const res = await req(historyApiUrl);
+        const res = await userApi.listHistory({ page, size });
+        currentPage = page;
+        currentSize = size;
         render(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
-        if (empty) {
-          empty.textContent = error.message || "历史数据加载失败";
-          empty.classList.remove("hidden");
+        try {
+          const fallbackRes = await userApi.listHistory();
+          render(Array.isArray(fallbackRes.data) ? fallbackRes.data : []);
+        } catch (_fallbackError) {
+          if (empty) {
+            empty.textContent = error.message || "历史数据加载失败";
+            empty.classList.remove("hidden");
+          }
         }
       }
     };
@@ -213,7 +275,7 @@
 
     const loadFines = async () => {
       try {
-        const res = await req(finesApiUrl);
+        const res = await userApi.getFines();
         render(res.data || {});
       } catch (error) {
         if (empty) {
@@ -251,7 +313,7 @@
 
     const loadProfile = async () => {
       try {
-        const res = await req(profileApiUrl);
+        const res = await userApi.getProfile();
         fillProfile(res.data || {});
       } catch (error) {
         if (hint) {
@@ -269,7 +331,7 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
-          await req(profileApiUrl, "PUT", {
+          await userApi.updateProfile({
             realName: realNameEl?.value?.trim() || "",
             phone: phoneEl?.value?.trim() || "",
             idCard: idCardEl?.value?.trim() || ""
@@ -340,7 +402,7 @@
 
   async function loadDashboard() {
     try {
-      const res = await req(dashboardApiUrl);
+      const res = await userApi.getDashboard();
       renderDashboard(res.data || {});
     } catch (error) {
       renderError(error.message);
