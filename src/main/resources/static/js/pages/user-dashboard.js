@@ -66,7 +66,15 @@
     }
   });
   if (!window.UserApi || typeof window.UserApi.create !== "function") {
-    redirectToLogin();
+    const bootstrapError = document.getElementById("dashboardError")
+      || document.getElementById("borrowingsEmpty")
+      || document.getElementById("historyEmpty")
+      || document.getElementById("finesEmpty")
+      || document.getElementById("profileHint");
+    if (bootstrapError) {
+      bootstrapError.textContent = "页面初始化失败：UserApi 未加载";
+      bootstrapError.classList.remove("hidden");
+    }
     return;
   }
   const userApi = window.UserApi.create(req, buildAppUrl);
@@ -105,6 +113,16 @@
         return;
       }
       empty.classList.add("hidden");
+      const actionHtml = (row) => {
+        const status = String(row.status || "").toUpperCase();
+        const renewDisabled = status !== "BORROWED" || Number(row.renewCount || 0) >= 1;
+        const returnDisabled = status === "RETURNED";
+        return `
+          <button class="btn btn-ghost" type="button" data-action="renew" data-record-id="${escapeHtml(row.id)}" ${renewDisabled ? "disabled" : ""}>续借</button>
+          <button class="btn btn-ghost" type="button" data-action="return" data-record-id="${escapeHtml(row.id)}" ${returnDisabled ? "disabled" : ""}>归还</button>
+        `;
+      };
+
       tbody.innerHTML = rows.map((row) => `
         <tr data-record-id="${escapeHtml(row.id)}">
           <td>${escapeHtml(row.id)}</td>
@@ -113,10 +131,7 @@
           <td>${formatDate(row.dueTime)}</td>
           <td>${escapeHtml(row.status)}</td>
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
-          <td>
-            <button class="btn btn-ghost" type="button" data-action="renew" data-record-id="${escapeHtml(row.id)}">续借</button>
-            <button class="btn btn-ghost" type="button" data-action="return" data-record-id="${escapeHtml(row.id)}">归还</button>
-          </td>
+          <td>${actionHtml(row)}</td>
         </tr>
       `).join("");
     };
@@ -251,17 +266,9 @@
         render(Array.isArray(res.data) ? res.data : []);
         renderPaging();
       } catch (error) {
-        try {
-          const fallbackRes = await userApi.listHistory();
-          currentPage = 0;
-          totalPages = 1;
-          render(Array.isArray(fallbackRes.data) ? fallbackRes.data : []);
-          renderPaging();
-        } catch (_fallbackError) {
-          if (empty) {
-            empty.textContent = error.message || "历史数据加载失败";
-            empty.classList.remove("hidden");
-          }
+        if (empty) {
+          empty.textContent = error.message || "历史数据加载失败";
+          empty.classList.remove("hidden");
         }
       }
     };
