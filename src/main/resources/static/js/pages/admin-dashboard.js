@@ -13,8 +13,6 @@
   };
 
   const loginUrl = buildAppUrl("/login.html");
-  const statsApiUrl = buildAppUrl("/api/admin/stats");
-  const noticesApiUrl = buildAppUrl("/api/admin/notices?page=0&size=5");
 
   const fallbackClearSession = () => {
     localStorage.removeItem("token");
@@ -62,6 +60,7 @@
       window.location.href = loginUrl;
     }
   });
+  const adminApi = window.AdminApi.create(req, buildAppUrl);
 
   const show = (msg) => window.Toast.show(msg);
   const asNumber = (value) => {
@@ -151,7 +150,7 @@
 
   async function loadStats() {
     try {
-      const res = await req(statsApiUrl);
+      const res = await adminApi.getStats();
       renderStats(res.data || {});
     } catch (error) {
       show(error.message || "统计数据加载失败");
@@ -164,7 +163,7 @@
     }
     stateView.tableMessage(latestNoticeTable, 4, "正在加载公告...", "loading");
     try {
-      const res = await req(noticesApiUrl);
+      const res = await adminApi.listNotices({ page: 0, size: 5 });
       const rows = Array.isArray(res.data) ? res.data : [];
       const pagination = normalizePager(res.pagination || {
         page: 0,

@@ -48,6 +48,7 @@
       window.location.href = loginUrl;
     }
   });
+  const adminApi = window.AdminApi.create(req, buildAppUrl);
 
   const show = (msg) => window.Toast.show(msg);
   const escapeHtml = (value) => String(value ?? "")
@@ -157,7 +158,7 @@
     }
 
     try {
-      await req(buildAppUrl(`/api/admin/notices/${noticeId}`), "DELETE");
+      await adminApi.deleteNotice(noticeId);
       show("公告已删除");
       if (state.editId === noticeId) {
         resetForm();
@@ -213,8 +214,7 @@
 
     tableEl.innerHTML = '<tr class="status-row status-loading"><td colspan="6">正在加载公告...</td></tr>';
     try {
-      const url = buildAppUrl(`/api/admin/notices?page=${state.page}&size=${state.size}`);
-      const res = await req(url);
+      const res = await adminApi.listNotices({ page: state.page, size: state.size });
       state.rows = Array.isArray(res.data) ? res.data : [];
 
       const totalPages = Number(res.pagination?.totalPages || 1);
@@ -236,10 +236,10 @@
     try {
       const payload = normalizePayload();
       if (state.editId) {
-        await req(buildAppUrl(`/api/admin/notices/${state.editId}`), "PUT", payload);
+        await adminApi.updateNotice(state.editId, payload);
         show("公告更新成功");
       } else {
-        await req(buildAppUrl("/api/admin/notices"), "POST", payload);
+        await adminApi.createNotice(payload);
         show("公告创建成功");
       }
 

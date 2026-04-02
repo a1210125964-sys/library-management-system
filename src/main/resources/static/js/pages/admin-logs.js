@@ -1,20 +1,6 @@
-window.AdminUserPage = {
-  async load(page, handlers) {
-    if (page === "studentManage") {
-      await handlers.loadStudentUsers();
-      return true;
-    }
-    if (page === "addAdmin") {
-      await handlers.loadAdminUsers();
-      return true;
-    }
-    return false;
-  }
-};
-
-(function initAdminUsersStandalonePage() {
+(function initAdminLogsPage() {
   const path = window.location.pathname || "";
-  if (!path.endsWith("/admin/users.html")) {
+  if (!path.endsWith("/admin/logs.html")) {
     return;
   }
 
@@ -67,40 +53,41 @@ window.AdminUserPage = {
   }
 
   panel.insertAdjacentHTML("beforeend", `
-    <div class="table-wrap" id="adminUserTableWrap">
+    <div class="table-wrap" id="adminLogTableWrap">
       <table>
         <thead>
           <tr>
-            <th>ID</th><th>用户名</th><th>姓名</th><th>角色</th><th>创建时间</th>
+            <th>ID</th><th>管理员</th><th>操作</th><th>结果</th><th>耗时(ms)</th><th>时间</th>
           </tr>
         </thead>
-        <tbody id="adminUserTable"></tbody>
+        <tbody id="adminLogTable"></tbody>
       </table>
     </div>
   `);
 
-  const tbody = document.getElementById("adminUserTable");
-  window.StateView.tableMessage(tbody, 5, "正在加载用户...", "loading");
+  const tbody = document.getElementById("adminLogTable");
+  window.StateView.tableMessage(tbody, 6, "正在加载日志...", "loading");
 
-  adminApi.listUsers({ page: 0, size: 10, role: "" })
+  adminApi.listLogs({ page: 0, size: 10, operation: "", startTime: "", endTime: "" })
     .then((res) => {
       const rows = Array.isArray(res.data) ? res.data : [];
       if (!rows.length) {
-        window.StateView.tableMessage(tbody, 5, "暂无用户数据", "empty");
+        window.StateView.tableMessage(tbody, 6, "暂无日志数据", "empty");
         return;
       }
       tbody.innerHTML = rows.map((item) => `
         <tr>
           <td>${escapeHtml(item.id || "-")}</td>
-          <td>${escapeHtml(item.username || "-")}</td>
-          <td>${escapeHtml(item.realName || "-")}</td>
-          <td>${escapeHtml(item.role || "-")}</td>
+          <td>${escapeHtml(item.adminName || item.adminUsername || "-")}</td>
+          <td>${escapeHtml(item.operation || "-")}</td>
+          <td>${escapeHtml(item.result || "-")}</td>
+          <td>${escapeHtml(item.durationMs ?? "-")}</td>
           <td>${escapeHtml(item.createdAt || "-")}</td>
         </tr>
       `).join("");
     })
     .catch((error) => {
-      window.StateView.tableMessage(tbody, 5, "用户加载失败", "error");
-      show(error.message || "用户加载失败");
+      window.StateView.tableMessage(tbody, 6, "日志加载失败", "error");
+      show(error.message || "日志加载失败");
     });
 })();
