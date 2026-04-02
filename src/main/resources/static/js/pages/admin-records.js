@@ -27,8 +27,6 @@
     }
   });
   const adminApi = window.AdminApi.create(req, buildAppUrl);
-  const show = (msg) => window.Toast.show(msg);
-
   const userInfoEl = document.getElementById("adminUserInfo");
   const logoutBtn = document.getElementById("logoutBtn");
   if (userInfoEl) {
@@ -57,12 +55,10 @@
 
   messageEl.textContent = "正在加载借阅记录...";
   adminApi.listRecords({ page: 0, size: 10 })
-    .then(() => {
-      messageEl.textContent = "借阅记录已加载";
+    .then((res) => {
+      messageEl.textContent = res?.message || "借阅记录接口暂未开放，将在后续版本接入。";
     })
-    .catch((error) => {
-      const friendlyMessage = error.message || "管理员借阅记录接口暂未开放";
-      messageEl.textContent = friendlyMessage;
-      show(friendlyMessage);
+    .catch(() => {
+      messageEl.textContent = "借阅记录接口暂未开放，将在后续版本接入。";
     });
 })();
