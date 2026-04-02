@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图书管理系统 - 公告详情</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+<div class="site-shell">
+    <div class="container">
+        <header class="site-header glass-card">
+            <a class="site-logo" href="/home.html">LMS Portal</a>
+            <nav class="site-nav" aria-label="门户导航">
+                <a href="/home.html">首页</a>
+                <a href="/catalog.html">馆藏</a>
+                <a href="/news.html">公告</a>
+                <a href="/about.html">关于</a>
+            </nav>
+            <div class="site-auth">
+                <a href="/login.html">登录</a>
+                <a class="btn-link" href="/register.html">注册</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero glass-card page-hero slim-hero">
+                <span class="hero-chip">公告详情</span>
+                <h1 id="noticeDetailTitle">加载中...</h1>
+                <p id="noticeDetailMeta" class="page-subtitle">正在获取公告内容</p>
+                <a class="btn btn-ghost" href="/news.html">返回公告列表</a>
+            </section>
+
+            <article id="noticeDetailCard" class="glass-card detail-card">
+                <p id="noticeDetailSummary" class="summary-text"></p>
+                <div id="noticeDetailContent" class="detail-content"></div>
+            </article>
+
+            <div id="newsDetailError" class="empty-state glass-card hidden"></div>
+        </main>
+
+        <footer class="site-footer">
+            <p>© <span id="currentYear"></span> 图书管理系统（LMS） · Public Portal</p>
+        </footer>
+    </div>
+</div>
+
+<script src="/js/core/http.js"></script>
+<script src="/js/site-shell.js"></script>
+<script src="/js/pages/news.js"></script>
+</body>
+</html>
