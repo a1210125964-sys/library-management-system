@@ -75,6 +75,7 @@ http://localhost:8080
 - 认证
   - `POST /api/auth/register`
   - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
   - `POST /api/auth/register-admin`（管理员）
 - 用户
   - `GET /api/users/me`
@@ -102,7 +103,7 @@ http://localhost:8080
   - `GET /api/admin/configs`
   - `PUT /api/admin/configs`
   - `GET /api/admin/users`（支持 `role=USER|ADMIN`；支持分页参数 `page`、`size`）
-  - `GET /api/admin/logs`（支持分页参数 `page`、`size`）
+  - `GET /api/admin/logs`（支持分页参数 `page`、`size`；支持 `operation`、`startTime`、`endTime` 过滤）
   - `POST /api/admin/users/{id}/reset-password`
 
 除公开接口外，请在 Header 中带上：`X-Token: <登录返回token>`
@@ -111,8 +112,24 @@ http://localhost:8080
 
 ## 5. 安全与配置说明
 
-- 认证采用 `X-Token`，默认有效期 12 小时（`app.auth.token-expire-hours`）。
+- 认证采用 JWT，Header 使用 `X-Token: <accessToken>`。
+- 登录返回 `accessToken` + `refreshToken`，可通过 `/api/auth/refresh` 刷新。
 - 未登录访问受保护接口返回 401，越权访问返回 403。
 - 推荐生产环境设置：
   - `JPA_DDL_AUTO=validate`
   - `SQL_INIT_MODE=never`
+  - `JWT_SECRET=<至少32位随机密钥>`
+
+## 6. 运行与发布检查清单
+
+- 配置检查
+  - 数据库连接与账号权限正确
+  - `JWT_SECRET` 已配置且非默认值
+  - `OVERDUE_SCAN_CRON` 按业务时段设置
+- 日志级别建议
+  - 开发：`LOG_LEVEL_ROOT=INFO`, `LOG_LEVEL_APP=DEBUG`
+  - 生产：`LOG_LEVEL_ROOT=INFO`, `LOG_LEVEL_APP=INFO`
+- 发布前验证
+  - 执行 `mvn test`
+  - 管理员登录、借阅、归还、续借、逾期扫描功能抽样验证
+  - `/api/admin/logs` 过滤条件（操作关键字/时间范围）验证

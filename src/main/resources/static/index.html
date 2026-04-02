@@ -226,11 +226,18 @@
                         <h3>操作记录</h3>
                         <button class="btn btn-secondary" type="button" onclick="loadAdminLogs()">刷新记录</button>
                     </div>
+                    <div class="row compact" style="margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <input id="adminLogOperation" class="jump-input" style="min-width: 180px;" placeholder="操作关键字" />
+                        <input id="adminLogStartTime" type="datetime-local" class="jump-input" />
+                        <input id="adminLogEndTime" type="datetime-local" class="jump-input" />
+                        <button class="btn btn-secondary" type="button" onclick="applyAdminLogFilter()">筛选</button>
+                        <button class="btn btn-secondary" type="button" onclick="resetAdminLogFilter()">重置</button>
+                    </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                             <tr>
-                                <th>ID</th><th>管理员</th><th>操作</th><th>详情</th><th>时间</th>
+                                <th>ID</th><th>管理员</th><th>操作</th><th>结果</th><th>耗时(ms)</th><th>详情</th><th>时间</th>
                             </tr>
                             </thead>
                             <tbody id="adminLogTable"></tbody>

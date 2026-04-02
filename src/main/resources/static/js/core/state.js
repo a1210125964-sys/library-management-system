@@ -24,7 +24,10 @@ window.AppState = {
       studentTotalPages: 1,
       adminLogPage: 1,
       adminLogPageSize: 10,
-      adminLogTotalPages: 1
+      adminLogTotalPages: 1,
+      adminLogOperation: "",
+      adminLogStartTime: "",
+      adminLogEndTime: ""
     };
   },
   clearSession(state) {

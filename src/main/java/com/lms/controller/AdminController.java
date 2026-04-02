@@ -10,12 +10,15 @@ import com.lms.service.AuthService;
 import com.lms.service.StatisticsService;
 import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -69,10 +72,18 @@ public class AdminController {
 
     @PutMapping("/configs")
     public Map<String, Object> updateConfigs(@RequestHeader("X-Token") String token,
-                                             @Valid @RequestBody ConfigUpdateRequest req) {
+                                             @Valid @RequestBody ConfigUpdateRequest req,
+                                             HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         Map<String, String> configs = systemConfigService.update(req);
-        adminLogService.log(admin, "更新系统参数", configs.toString());
+        adminLogService.log(admin,
+            "更新系统参数",
+            configs.toString(),
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
         return success("更新成功", configs);
     }
 
@@ -97,26 +108,40 @@ public class AdminController {
     @PostMapping("/users/{id}/reset-password")
     public Map<String, Object> resetPassword(@RequestHeader("X-Token") String token,
                                              @PathVariable Long id,
-                                             @Valid @RequestBody ResetPasswordRequest req) {
+                                             @Valid @RequestBody ResetPasswordRequest req,
+                                             HttpServletRequest request) {
+        long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         User user = userService.resetPassword(id, req.getNewPassword());
-        adminLogService.log(admin, "重置用户密码", "userId=" + id);
+        adminLogService.log(admin,
+            "重置用户密码",
+            "userId=" + id,
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
         return success("密码重置成功", userMap(user));
     }
 
     @GetMapping("/logs")
     public Map<String, Object> logs(@RequestHeader("X-Token") String token,
+                                    @RequestParam(required = false) String operation,
+                                    @RequestParam(required = false) String startTime,
+                                    @RequestParam(required = false) String endTime,
                                     @RequestParam(required = false) Integer page,
                                     @RequestParam(required = false) Integer size) {
         authService.requireAdmin(token);
+        LocalDateTime start = parseDateTime(startTime);
+        LocalDateTime end = parseDateTime(endTime);
 
         if (page != null && size != null) {
-            Page<AdminOperationLog> result = adminLogService.recentLogs(page, size);
+            Page<AdminOperationLog> result = adminLogService.searchLogs(operation, start, end, page, size);
             List<Map<String, Object>> data = result.getContent().stream().map(this::logMap).collect(Collectors.toList());
             return success("查询成功", data, pagination(result));
         }
 
-        List<Map<String, Object>> data = adminLogService.recentLogs().stream().map(this::logMap).collect(Collectors.toList());
+        Page<AdminOperationLog> result = adminLogService.searchLogs(operation, start, end, 0, 50);
+        List<Map<String, Object>> data = result.getContent().stream().map(this::logMap).collect(Collectors.toList());
         return success("查询成功", data);
     }
 
@@ -175,7 +200,30 @@ public class AdminController {
         map.put("adminUsername", log.getAdmin() == null ? "" : log.getAdmin().getUsername());
         map.put("operation", log.getOperation());
         map.put("detail", log.getDetail());
+        map.put("result", log.getResult());
+        map.put("durationMs", log.getDurationMs());
+        map.put("clientIp", log.getClientIp());
+        map.put("userAgent", log.getUserAgent());
         map.put("createdAt", log.getCreatedAt());
         return map;
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

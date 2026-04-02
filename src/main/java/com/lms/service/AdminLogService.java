@@ -21,10 +21,24 @@ public class AdminLogService {
     }
 
     public void log(User admin, String operation, String detail) {
+        log(admin, operation, detail, "SUCCESS", 0L, null, null);
+    }
+
+    public void log(User admin,
+                    String operation,
+                    String detail,
+                    String result,
+                    Long durationMs,
+                    String clientIp,
+                    String userAgent) {
         AdminOperationLog log = new AdminOperationLog();
         log.setAdmin(admin);
         log.setOperation(operation);
         log.setDetail(detail);
+        log.setResult(result == null || result.isBlank() ? "SUCCESS" : result);
+        log.setDurationMs(durationMs == null ? 0L : Math.max(0L, durationMs));
+        log.setClientIp(clientIp);
+        log.setUserAgent(userAgent);
         log.setCreatedAt(LocalDateTime.now());
         adminOperationLogRepository.save(log);
     }
@@ -38,5 +52,17 @@ public class AdminLogService {
         int safeSize = Math.max(1, Math.min(size, 100));
         Pageable pageable = PageRequest.of(safePage, safeSize);
         return adminOperationLogRepository.findAllByOrderByCreatedAtDesc(pageable);
+    }
+
+    public Page<AdminOperationLog> searchLogs(String operation,
+                                              LocalDateTime startTime,
+                                              LocalDateTime endTime,
+                                              int page,
+                                              int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        String operationKeyword = (operation == null || operation.isBlank()) ? null : operation.trim();
+        return adminOperationLogRepository.search(operationKeyword, startTime, endTime, pageable);
     }
 }

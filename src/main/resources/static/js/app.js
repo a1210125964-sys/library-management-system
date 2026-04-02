@@ -864,12 +864,20 @@ async function loadAdminLogs() {
   if (!isAdmin()) {
     return;
   }
-  renderTableState("adminLogTable", 5, "正在加载操作记录...", "loading");
+  renderTableState("adminLogTable", 7, "正在加载操作记录...", "loading");
   try {
-    const qs = new URLSearchParams({
-      page: String(Math.max(0, state.adminLogPage - 1)),
-      size: String(state.adminLogPageSize)
-    });
+    const qs = new URLSearchParams();
+    qs.set("page", String(Math.max(0, state.adminLogPage - 1)));
+    qs.set("size", String(state.adminLogPageSize));
+    if (state.adminLogOperation) {
+      qs.set("operation", state.adminLogOperation);
+    }
+    if (state.adminLogStartTime) {
+      qs.set("startTime", state.adminLogStartTime);
+    }
+    if (state.adminLogEndTime) {
+      qs.set("endTime", state.adminLogEndTime);
+    }
     const res = await req(`/api/admin/logs?${qs.toString()}`);
     const rows = res.data || [];
     const tbody = document.getElementById("adminLogTable");
@@ -878,10 +886,12 @@ async function loadAdminLogs() {
         <td>${r.id}</td>
         <td>${r.adminName || r.adminUsername || "-"}</td>
         <td>${r.operation || "-"}</td>
+        <td>${r.result || "-"}</td>
+        <td>${r.durationMs ?? 0}</td>
         <td>${r.detail || "-"}</td>
         <td>${r.createdAt || ""}</td>
       </tr>
-    `).join("") : `<tr class="status-row status-empty"><td colspan="5">暂无操作日志</td></tr>`;
+    `).join("") : `<tr class="status-row status-empty"><td colspan="7">暂无操作日志</td></tr>`;
 
     state.adminLogTotalPages = Math.max(1, Number(res.pagination?.totalPages || 1));
     state.adminLogPage = Number(res.pagination?.page || (state.adminLogPage - 1)) + 1;
@@ -899,9 +909,37 @@ async function loadAdminLogs() {
       next.disabled = state.adminLogPage >= state.adminLogTotalPages;
     }
   } catch (e) {
-    renderTableState("adminLogTable", 5, "操作记录加载失败", "error");
+    renderTableState("adminLogTable", 7, "操作记录加载失败", "error");
     show(e.message);
   }
+}
+
+function applyAdminLogFilter() {
+  state.adminLogOperation = (document.getElementById("adminLogOperation")?.value || "").trim();
+  state.adminLogStartTime = (document.getElementById("adminLogStartTime")?.value || "").trim();
+  state.adminLogEndTime = (document.getElementById("adminLogEndTime")?.value || "").trim();
+  state.adminLogPage = 1;
+  loadAdminLogs();
+}
+
+function resetAdminLogFilter() {
+  state.adminLogOperation = "";
+  state.adminLogStartTime = "";
+  state.adminLogEndTime = "";
+  const operationInput = document.getElementById("adminLogOperation");
+  const startInput = document.getElementById("adminLogStartTime");
+  const endInput = document.getElementById("adminLogEndTime");
+  if (operationInput) {
+    operationInput.value = "";
+  }
+  if (startInput) {
+    startInput.value = "";
+  }
+  if (endInput) {
+    endInput.value = "";
+  }
+  state.adminLogPage = 1;
+  loadAdminLogs();
 }
 
 function changeAdminLogPage(step) {
@@ -1254,6 +1292,14 @@ function initBorrowInventorySearch() {
     jumpPage.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         jumpAdminBookPage();
+      }
+    });
+  }
+  const logOperation = document.getElementById("adminLogOperation");
+  if (logOperation) {
+    logOperation.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        applyAdminLogFilter();
       }
     });
   }
