@@ -1,14 +1,42 @@
 (function initUserPortalPages() {
   const path = window.location.pathname || "";
-  const onUserPortalPage = path.startsWith("/user/");
+  const userPortalPath = "/user/";
+  const userPortalIndex = path.indexOf(userPortalPath);
+  const onUserPortalPage = userPortalIndex !== -1;
   if (!onUserPortalPage) {
     return;
   }
 
+  const appBasePath = path.slice(0, userPortalIndex);
+  const buildAppUrl = (targetPath) => {
+    const normalizedPath = targetPath.startsWith("/") ? targetPath : `/${targetPath}`;
+    return `${appBasePath}${normalizedPath}`;
+  };
+  const loginUrl = buildAppUrl("/login.html");
+  const dashboardApiUrl = buildAppUrl("/api/user/dashboard");
+
+  const clearSession = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  };
+
+  const redirectToLogin = () => {
+    window.location.href = loginUrl;
+  };
+
   const token = localStorage.getItem("token") || "";
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("user") || "null");
+  } catch (_error) {
+    clearSession();
+    redirectToLogin();
+    return;
+  }
+
   if (!token || !user) {
-    window.location.href = "/login.html";
+    redirectToLogin();
     return;
   }
 
@@ -26,10 +54,8 @@
   document.querySelectorAll("#userLogoutBtn").forEach((el) => {
     el.addEventListener("click", (event) => {
       event.preventDefault();
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      window.location.href = "/login.html";
+      clearSession();
+      redirectToLogin();
     });
   });
 
@@ -40,10 +66,8 @@
   const req = window.HttpClient.create({
     getToken: () => localStorage.getItem("token") || "",
     onUnauthorized: () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      window.location.href = "/login.html";
+      clearSession();
+      redirectToLogin();
     }
   });
 
@@ -97,7 +121,7 @@
 
   async function loadDashboard() {
     try {
-      const res = await req("/api/user/dashboard");
+      const res = await req(dashboardApiUrl);
       renderDashboard(res.data || {});
     } catch (error) {
       renderError(error.message);
