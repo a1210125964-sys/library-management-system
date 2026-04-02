@@ -16,6 +16,21 @@
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+  const parseNoticeId = (value) => {
+    if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) {
+      return value;
+    }
+    const text = String(value || "").trim();
+    if (!/^\d+$/.test(text)) {
+      return null;
+    }
+    const id = Number(text);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return null;
+    }
+    return id;
+  };
+
   const formatTime = (value) => {
     if (!value) {
       return "发布时间待更新";
@@ -40,6 +55,7 @@
     const pageInfoEl = document.getElementById("newsPageInfo");
     const prevBtn = document.getElementById("newsPrevBtn");
     const nextBtn = document.getElementById("newsNextBtn");
+    let latestRequestId = 0;
 
     function syncPager() {
       const total = Math.max(state.totalPages, 1);
@@ -67,17 +83,22 @@
       }
 
       emptyEl.classList.add("hidden");
-      listEl.innerHTML = notices.map((notice) => `
+      listEl.innerHTML = notices.map((notice) => {
+        const noticeId = parseNoticeId(notice.id);
+        const detailHref = noticeId ? `/news-detail.html?id=${noticeId}` : "/news-detail.html";
+        return `
         <article class="glass-card notice-card">
-          <h3><a href="/news-detail.html?id=${Number(notice.id)}">${escapeHtml(notice.title)}</a></h3>
+          <h3><a href="${detailHref}">${escapeHtml(notice.title)}</a></h3>
           <p class="meta-text">发布时间：${escapeHtml(formatTime(notice.publishedAt))}</p>
           <p>${escapeHtml(notice.summary || "暂无摘要")}</p>
-          <a class="notice-link" href="/news-detail.html?id=${Number(notice.id)}">查看详情 →</a>
+          <a class="notice-link" href="${detailHref}">查看详情 →</a>
         </article>
-      `).join("");
+      `;
+      }).join("");
     }
 
     async function fetchNotices() {
+      const requestId = ++latestRequestId;
       if (pageInfoEl) {
         pageInfoEl.textContent = "加载中...";
       }
@@ -88,6 +109,9 @@
 
       try {
         const res = await req(`/api/public/notices?${params.toString()}`);
+        if (requestId !== latestRequestId) {
+          return;
+        }
         const notices = Array.isArray(res.data) ? res.data : [];
         const pagination = res.pagination || {};
 
@@ -95,6 +119,9 @@
         state.totalElements = Number(pagination.totalElements || notices.length || 0);
         renderNoticeList(notices);
       } catch (error) {
+        if (requestId !== latestRequestId) {
+          return;
+        }
         state.totalPages = 1;
         state.totalElements = 0;
         if (listEl) {
@@ -140,7 +167,8 @@
     const cardEl = document.getElementById("noticeDetailCard");
     const errorEl = document.getElementById("newsDetailError");
 
-    const id = Number(new URLSearchParams(window.location.search).get("id"));
+    const idParam = new URLSearchParams(window.location.search).get("id");
+    const id = parseNoticeId(idParam);
     if (!id) {
       if (cardEl) {
         cardEl.classList.add("hidden");

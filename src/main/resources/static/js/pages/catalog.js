@@ -11,6 +11,7 @@
     totalPages: 1,
     totalElements: 0
   };
+  let latestRequestId = 0;
 
   const listEl = document.getElementById("catalogList");
   const emptyEl = document.getElementById("catalogEmpty");
@@ -72,6 +73,7 @@
   }
 
   async function loadBooks() {
+    const requestId = ++latestRequestId;
     if (pageInfoEl) {
       pageInfoEl.textContent = "加载中...";
     }
@@ -85,6 +87,9 @@
 
     try {
       const res = await req(`/api/public/books?${params.toString()}`);
+      if (requestId !== latestRequestId) {
+        return;
+      }
       const books = Array.isArray(res.data) ? res.data : [];
       const pagination = res.pagination || {};
 
@@ -93,6 +98,9 @@
 
       renderBooks(books);
     } catch (error) {
+      if (requestId !== latestRequestId) {
+        return;
+      }
       state.totalPages = 1;
       state.totalElements = 0;
       if (listEl) {
