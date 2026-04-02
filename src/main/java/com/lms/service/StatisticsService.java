@@ -40,6 +40,17 @@ public class StatisticsService {
         return map;
     }
 
+    public Map<String, Object> publicOverview() {
+        Map<String, Object> map = new HashMap<>();
+        long totalBooks = bookRepository.count();
+        long activeBorrowCount = borrowRecordRepository.countByStatusIn(List.of(BorrowStatus.BORROWED, BorrowStatus.OVERDUE));
+        long availableBooks = Math.max(0, totalBooks - activeBorrowCount);
+        map.put("totalBooks", totalBooks);
+        map.put("availableBooks", availableBooks);
+        map.put("borrowedBooks", activeBorrowCount);
+        return map;
+    }
+
     public List<Map<String, Object>> bookBorrowStats(int limit) {
         List<Object[]> rows = borrowRecordRepository.topBookBorrowStats(Math.max(1, limit));
         return rows.stream().map(this::toBookStatMap).toList();

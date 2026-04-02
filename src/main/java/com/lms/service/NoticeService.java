@@ -1,6 +1,7 @@
 package com.lms.service;
 
 import com.lms.dto.NoticeRequest;
+import com.lms.exception.BusinessException;
 import com.lms.model.Notice;
 import com.lms.model.User;
 import com.lms.repository.NoticeRepository;
@@ -44,5 +45,13 @@ public class NoticeService {
         int safeSize = Math.max(1, Math.min(size, 100));
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "publishedAt"));
         return noticeRepository.findByPublishedTrue(pageable);
+    }
+
+    public Notice getPublishedDetail(Long id) {
+        Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
+        if (!Boolean.TRUE.equals(notice.getPublished())) {
+            throw new BusinessException("公告不存在");
+        }
+        return notice;
     }
 }
