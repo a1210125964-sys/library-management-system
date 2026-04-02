@@ -56,6 +56,12 @@
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
   };
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
   const userInfoEl = document.getElementById("adminUserInfo");
   const logoutBtn = document.getElementById("logoutBtn");
@@ -99,10 +105,10 @@
 
     latestNoticeTable.innerHTML = rows.map((notice) => `
       <tr>
-        <td>${notice.id || "-"}</td>
-        <td>${notice.title || "-"}</td>
+        <td>${escapeHtml(notice.id || "-")}</td>
+        <td>${escapeHtml(notice.title || "-")}</td>
         <td>${notice.published ? "已发布" : "草稿"}</td>
-        <td>${notice.updatedAt || "-"}</td>
+        <td>${escapeHtml(notice.updatedAt || "-")}</td>
       </tr>
     `).join("");
   }
