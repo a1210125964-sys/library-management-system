@@ -13,34 +13,52 @@
   };
 
   const loginUrl = buildAppUrl("/login.html");
-  const legacyUrl = buildAppUrl("/index.html?legacy=1");
   const statsApiUrl = buildAppUrl("/api/admin/stats");
   const noticesApiUrl = buildAppUrl("/api/admin/notices?page=0&size=5");
 
-  const token = localStorage.getItem("token") || "";
-  let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem("user") || "null");
-  } catch (_error) {
-    window.PageGuards.clearSession();
-    window.location.href = loginUrl;
-    return;
-  }
+  const fallbackClearSession = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  };
+  const fallbackRequireRole = (role, redirectUrl) => {
+    const token = localStorage.getItem("token") || "";
+    const rawUser = localStorage.getItem("user");
+    let parsedUser = null;
+    if (rawUser) {
+      try {
+        parsedUser = JSON.parse(rawUser);
+      } catch (_error) {
+        parsedUser = null;
+      }
+    }
 
-  if (!token || !user) {
-    window.location.href = loginUrl;
-    return;
-  }
+    if (!token || !parsedUser || (role && parsedUser.role !== role)) {
+      fallbackClearSession();
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      }
+      return null;
+    }
+    return parsedUser;
+  };
+  const pageGuards = window.PageGuards && typeof window.PageGuards.requireRole === "function"
+    && typeof window.PageGuards.clearSession === "function"
+    ? window.PageGuards
+    : {
+      clearSession: fallbackClearSession,
+      requireRole: fallbackRequireRole
+    };
 
-  if (user.role !== "ADMIN") {
-    window.location.href = legacyUrl;
+  const user = pageGuards.requireRole("ADMIN", loginUrl);
+  if (!user) {
     return;
   }
 
   const req = window.HttpClient.create({
     getToken: () => localStorage.getItem("token") || "",
     onUnauthorized: () => {
-      window.PageGuards.clearSession();
+      pageGuards.clearSession();
       window.location.href = loginUrl;
     }
   });
@@ -56,6 +74,30 @@
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+  const stateView = window.StateView && typeof window.StateView.tableMessage === "function"
+    ? window.StateView
+    : {
+      tableMessage: (tbodyEl, colspan, text, type) => {
+        if (!tbodyEl) {
+          return;
+        }
+        const safeColspan = Math.max(1, Number(colspan) || 1);
+        const stateType = type || "empty";
+        const safeText = escapeHtml(text || "暂无数据");
+        tbodyEl.innerHTML = `<tr class="status-row status-${stateType}"><td colspan="${safeColspan}">${safeText}</td></tr>`;
+      }
+    };
+  const normalizePager = window.Pager && typeof window.Pager.normalize === "function"
+    ? window.Pager.normalize
+    : (pagination) => {
+      const source = pagination || {};
+      return {
+        page: Math.max(1, Number(source.page ?? source.number ?? 0) + 1 || 1),
+        size: Math.max(1, Number(source.size) || 10),
+        totalPages: Math.max(1, Number(source.totalPages) || 1),
+        totalElements: Math.max(0, Number(source.totalElements) || 0)
+      };
+    };
 
   const userInfoEl = document.getElementById("adminUserInfo");
   const logoutBtn = document.getElementById("logoutBtn");
@@ -68,7 +110,7 @@
 
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      window.PageGuards.clearSession();
+      pageGuards.clearSession();
       window.location.href = loginUrl;
     });
   }
@@ -93,7 +135,7 @@
       return;
     }
     if (!rows.length) {
-      latestNoticeTable.innerHTML = '<tr class="status-row status-empty"><td colspan="4">暂无公告数据</td></tr>';
+      stateView.tableMessage(latestNoticeTable, 4, "暂无公告数据", "empty");
       return;
     }
 
@@ -120,12 +162,19 @@
     if (!latestNoticeTable) {
       return;
     }
-    latestNoticeTable.innerHTML = '<tr class="status-row status-loading"><td colspan="4">正在加载公告...</td></tr>';
+    stateView.tableMessage(latestNoticeTable, 4, "正在加载公告...", "loading");
     try {
       const res = await req(noticesApiUrl);
-      renderNotices(res.data || []);
+      const rows = Array.isArray(res.data) ? res.data : [];
+      const pagination = normalizePager(res.pagination || {
+        page: 0,
+        size: rows.length || 5,
+        totalPages: 1,
+        totalElements: rows.length
+      });
+      renderNotices(rows.slice(0, Math.max(1, pagination.size)));
     } catch (error) {
-      latestNoticeTable.innerHTML = '<tr class="status-row status-error"><td colspan="4">公告加载失败</td></tr>';
+      stateView.tableMessage(latestNoticeTable, 4, "公告加载失败", "error");
       show(error.message || "公告加载失败");
     }
   }

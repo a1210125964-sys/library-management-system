@@ -35,6 +35,7 @@
     }
 
     if (role && user.role !== role) {
+      clearSession();
       redirectTo(loginUrl);
       return null;
     }
