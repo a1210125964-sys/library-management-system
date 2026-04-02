@@ -44,6 +44,46 @@ public class NoticeService {
         return noticeRepository.save(notice);
     }
 
+    @Transactional
+    public Notice update(Long id, NoticeRequest req, User adminUser) {
+        if (adminUser == null) {
+            throw new BusinessException("管理员不存在");
+        }
+
+        Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
+        notice.setTitle(req.getTitle());
+        notice.setSummary(req.getSummary());
+        notice.setContent(req.getContent());
+
+        boolean published = Boolean.TRUE.equals(req.getPublished());
+        notice.setPublished(published);
+        if (!published) {
+            notice.setPublishedAt(null);
+        } else if (notice.getPublishedAt() == null) {
+            notice.setPublishedAt(LocalDateTime.now());
+        }
+
+        notice.setUpdatedAt(LocalDateTime.now());
+        return noticeRepository.save(notice);
+    }
+
+    @Transactional
+    public void delete(Long id, User adminUser) {
+        if (adminUser == null) {
+            throw new BusinessException("管理员不存在");
+        }
+
+        Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
+        noticeRepository.delete(notice);
+    }
+
+    public Page<Notice> listAll(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return noticeRepository.findAll(pageable);
+    }
+
     public Page<Notice> listPublished(int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 100));

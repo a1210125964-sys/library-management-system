@@ -1,12 +1,16 @@
 package com.lms.controller;
 
+import com.lms.dto.ApiResponse;
 import com.lms.dto.ConfigUpdateRequest;
+import com.lms.dto.NoticeRequest;
 import com.lms.dto.ResetPasswordRequest;
 import com.lms.model.AdminOperationLog;
+import com.lms.model.Notice;
 import com.lms.model.User;
 import com.lms.model.UserRole;
 import com.lms.service.AdminLogService;
 import com.lms.service.AuthService;
+import com.lms.service.NoticeService;
 import com.lms.service.StatisticsService;
 import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
@@ -31,17 +35,20 @@ public class AdminController {
     private final SystemConfigService systemConfigService;
     private final AdminLogService adminLogService;
     private final UserService userService;
+    private final NoticeService noticeService;
 
     public AdminController(AuthService authService,
                            StatisticsService statisticsService,
                            SystemConfigService systemConfigService,
                            AdminLogService adminLogService,
-                           UserService userService) {
+                           UserService userService,
+                           NoticeService noticeService) {
         this.authService = authService;
         this.statisticsService = statisticsService;
         this.systemConfigService = systemConfigService;
         this.adminLogService = adminLogService;
         this.userService = userService;
+        this.noticeService = noticeService;
     }
 
     @GetMapping("/stats")
@@ -145,6 +152,41 @@ public class AdminController {
         return success("查询成功", data);
     }
 
+    @PostMapping("/notices")
+    public ApiResponse<Map<String, Object>> createNotice(@RequestHeader("X-Token") String token,
+                                                          @Valid @RequestBody NoticeRequest req) {
+        User admin = authService.requireAdmin(token);
+        Notice notice = noticeService.create(req, admin);
+        return ApiResponse.success("创建成功", noticeMap(notice));
+    }
+
+    @PutMapping("/notices/{id}")
+    public ApiResponse<Map<String, Object>> updateNotice(@RequestHeader("X-Token") String token,
+                                                          @PathVariable Long id,
+                                                          @Valid @RequestBody NoticeRequest req) {
+        User admin = authService.requireAdmin(token);
+        Notice notice = noticeService.update(id, req, admin);
+        return ApiResponse.success("更新成功", noticeMap(notice));
+    }
+
+    @DeleteMapping("/notices/{id}")
+    public ApiResponse<Object> deleteNotice(@RequestHeader("X-Token") String token,
+                                            @PathVariable Long id) {
+        User admin = authService.requireAdmin(token);
+        noticeService.delete(id, admin);
+        return ApiResponse.success("删除成功", null);
+    }
+
+    @GetMapping("/notices")
+    public ApiResponse<List<Map<String, Object>>> notices(@RequestHeader("X-Token") String token,
+                                                           @RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "10") int size) {
+        authService.requireAdmin(token);
+        Page<Notice> result = noticeService.listAll(page, size);
+        List<Map<String, Object>> data = result.getContent().stream().map(this::noticeMap).toList();
+        return ApiResponse.success("查询成功", data, pagination(result));
+    }
+
     private Map<String, Object> success(String message, Object data) {
         Map<String, Object> result = new HashMap<>();
         result.put("message", message);
@@ -189,6 +231,19 @@ public class AdminController {
         map.put("idCard", user.getIdCard());
         map.put("role", user.getRole());
         map.put("createdAt", user.getCreatedAt());
+        return map;
+    }
+
+    private Map<String, Object> noticeMap(Notice notice) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", notice.getId());
+        map.put("title", notice.getTitle());
+        map.put("summary", notice.getSummary());
+        map.put("content", notice.getContent());
+        map.put("published", notice.getPublished());
+        map.put("publishedAt", notice.getPublishedAt());
+        map.put("createdAt", notice.getCreatedAt());
+        map.put("updatedAt", notice.getUpdatedAt());
         return map;
     }
 
