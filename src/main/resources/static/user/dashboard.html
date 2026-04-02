@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图书管理系统 - 用户中心</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+<div class="site-shell">
+    <div class="container">
+        <header class="site-header glass-card">
+            <a class="site-logo" href="/home.html">LMS Portal</a>
+            <nav class="site-nav" aria-label="门户导航">
+                <a href="/home.html">首页</a>
+                <a href="/catalog.html">馆藏</a>
+                <a href="/news.html">公告</a>
+                <a href="/about.html">关于</a>
+                <a href="/user/dashboard.html">用户中心</a>
+            </nav>
+            <div class="site-auth">
+                <a href="/login.html">切换账号</a>
+                <a id="userLogoutBtn" href="#">退出登录</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero glass-card page-hero slim-hero">
+                <span class="hero-chip">用户中心</span>
+                <h1>你好，<span id="userDisplayName">读者</span></h1>
+                <p id="dashboardSubTitle" class="page-subtitle">正在加载个人借阅数据...</p>
+                <nav class="toolbar-row" aria-label="用户中心页面">
+                    <a class="btn btn-primary" href="/user/dashboard.html">总览</a>
+                    <a class="btn btn-ghost" href="/user/borrowings.html">当前借阅</a>
+                    <a class="btn btn-ghost" href="/user/history.html">借阅历史</a>
+                    <a class="btn btn-ghost" href="/user/profile.html">个人资料</a>
+                    <a class="btn btn-ghost" href="/user/fines.html">罚款记录</a>
+                </nav>
+            </section>
+
+            <section>
+                <h2 class="section-title">关键指标</h2>
+                <div class="card-grid user-kpi-grid">
+                    <article class="glass-card resource-card kpi-card">
+                        <p class="kpi-label">当前在借</p>
+                        <p id="kpiActiveBorrow" class="kpi-value">--</p>
+                        <p class="meta-text">正在借阅且未归还的图书数量</p>
+                    </article>
+                    <article class="glass-card resource-card kpi-card">
+                        <p class="kpi-label">逾期图书</p>
+                        <p id="kpiOverdue" class="kpi-value">--</p>
+                        <p class="meta-text">请尽快归还，避免新增罚款</p>
+                    </article>
+                    <article class="glass-card resource-card kpi-card">
+                        <p class="kpi-label">门户公告</p>
+                        <p id="kpiNotices" class="kpi-value">--</p>
+                        <p class="meta-text">当前公开发布的公告总数</p>
+                    </article>
+                </div>
+                <div id="dashboardError" class="empty-state glass-card hidden"></div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <p>© <span id="currentYear"></span> 图书管理系统（LMS） · User Portal</p>
+        </footer>
+    </div>
+</div>
+
+<script src="/js/core/http.js"></script>
+<script src="/js/site-shell.js"></script>
+<script src="/js/pages/user-dashboard.js"></script>
+</body>
+</html>
