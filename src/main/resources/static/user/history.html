@@ -42,7 +42,14 @@
                 <div class="glass-card panel-card">
                     <div class="section-head">
                         <h2 class="section-title">历史借阅</h2>
-                        <button id="historyReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                        <div class="toolbar-row">
+                            <button id="historyReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                            <select id="historyStatusFilter">
+                                <option value="ALL">全部状态</option>
+                                <option value="RETURNED">已归还</option>
+                                <option value="OVERDUE">逾期</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table class="site-table">
@@ -53,6 +60,11 @@
                             </thead>
                             <tbody id="historyTableBody"></tbody>
                         </table>
+                    </div>
+                    <div class="toolbar-row" style="justify-content: space-between; margin-top: 12px;">
+                        <button id="historyPrevBtn" class="btn btn-ghost" type="button">上一页</button>
+                        <span id="historyPageInfo" class="meta-text">第 1 / 1 页</span>
+                        <button id="historyNextBtn" class="btn btn-ghost" type="button">下一页</button>
                     </div>
                     <div id="historyEmpty" class="empty-state hidden">暂无历史借阅记录。</div>
                 </div>
@@ -68,6 +80,8 @@
 <script src="/js/core/http.js"></script>
 <script src="/js/site-shell.js"></script>
 <script src="/js/api/user-api.js"></script>
+<script src="/js/ui/table.js"></script>
+<script src="/js/ui/filters.js"></script>
 <script src="/js/pages/user-dashboard.js"></script>
 </body>
 </html>

@@ -77,7 +77,33 @@
     }
     return;
   }
+  if (!window.TableView || typeof window.TableView.renderRows !== "function") {
+    const bootstrapError = document.getElementById("dashboardError")
+      || document.getElementById("borrowingsEmpty")
+      || document.getElementById("historyEmpty")
+      || document.getElementById("finesEmpty")
+      || document.getElementById("profileHint");
+    if (bootstrapError) {
+      bootstrapError.textContent = "页面初始化失败：TableView 未加载";
+      bootstrapError.classList.remove("hidden");
+    }
+    return;
+  }
+  if (!window.FilterBar || typeof window.FilterBar.bindEnterToSubmit !== "function") {
+    const bootstrapError = document.getElementById("dashboardError")
+      || document.getElementById("borrowingsEmpty")
+      || document.getElementById("historyEmpty")
+      || document.getElementById("finesEmpty")
+      || document.getElementById("profileHint");
+    if (bootstrapError) {
+      bootstrapError.textContent = "页面初始化失败：FilterBar 未加载";
+      bootstrapError.classList.remove("hidden");
+    }
+    return;
+  }
   const userApi = window.UserApi.create(req, buildAppUrl);
+  const tableView = window.TableView;
+  const filterBar = window.FilterBar;
 
   const escapeHtml = (value) => String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -102,17 +128,14 @@
     const tbody = document.getElementById("borrowingsTableBody");
     const empty = document.getElementById("borrowingsEmpty");
     const reloadBtn = document.getElementById("borrowingsReloadBtn");
+    const keywordInput = document.getElementById("borrowingsKeyword");
+
+    let borrowingsCache = [];
 
     const render = (rows) => {
       if (!tbody || !empty) {
         return;
       }
-      if (!rows.length) {
-        tbody.innerHTML = "";
-        empty.classList.remove("hidden");
-        return;
-      }
-      empty.classList.add("hidden");
       const actionHtml = (row) => {
         const status = String(row.status || "").toUpperCase();
         const renewDisabled = status !== "BORROWED" || Number(row.renewCount || 0) >= 1;
@@ -123,7 +146,7 @@
         `;
       };
 
-      tbody.innerHTML = rows.map((row) => `
+      const rowHtmlList = rows.map((row) => `
         <tr data-record-id="${escapeHtml(row.id)}">
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
@@ -133,14 +156,28 @@
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
           <td>${actionHtml(row)}</td>
         </tr>
-      `).join("");
+      `);
+      tableView.renderRows(tbody, rowHtmlList, "当前无在借图书。", 7);
+      empty.classList.add("hidden");
+    };
+
+    const applyBorrowingsFilter = () => {
+      const keyword = String(keywordInput?.value || "").trim().toLowerCase();
+      if (!keyword) {
+        render(borrowingsCache);
+        return;
+      }
+      const filteredRows = borrowingsCache.filter((row) => String(row.bookTitle || "").toLowerCase().includes(keyword));
+      render(filteredRows);
     };
 
     const loadBorrowings = async () => {
       try {
         const res = await userApi.listBorrowings();
-        render(Array.isArray(res.data) ? res.data : []);
+        borrowingsCache = Array.isArray(res.data) ? res.data : [];
+        applyBorrowingsFilter();
       } catch (error) {
+        tableView.renderRows(tbody, [], "当前无在借图书。", 7);
         if (empty) {
           empty.textContent = error.message || "借阅数据加载失败";
           empty.classList.remove("hidden");
@@ -205,6 +242,10 @@
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadBorrowings);
     }
+    if (keywordInput) {
+      keywordInput.addEventListener("input", applyBorrowingsFilter);
+      filterBar.bindEnterToSubmit(keywordInput, applyBorrowingsFilter);
+    }
     loadBorrowings();
     return;
   }
@@ -213,21 +254,18 @@
     const tbody = document.getElementById("historyTableBody");
     const empty = document.getElementById("historyEmpty");
     const reloadBtn = document.getElementById("historyReloadBtn");
+    const statusFilter = document.getElementById("historyStatusFilter");
     const prevBtn = document.getElementById("historyPrevBtn");
     const nextBtn = document.getElementById("historyNextBtn");
     const pageInfoEl = document.getElementById("historyPageInfo");
+
+    let historyCache = [];
 
     const render = (rows) => {
       if (!tbody || !empty) {
         return;
       }
-      if (!rows.length) {
-        tbody.innerHTML = "";
-        empty.classList.remove("hidden");
-        return;
-      }
-      empty.classList.add("hidden");
-      tbody.innerHTML = rows.map((row) => `
+      const rowHtmlList = rows.map((row) => `
         <tr>
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
@@ -236,7 +274,18 @@
           <td>${escapeHtml(row.status)}</td>
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
         </tr>
-      `).join("");
+      `);
+      tableView.renderRows(tbody, rowHtmlList, "暂无历史借阅记录。", 6);
+      empty.classList.add("hidden");
+    };
+
+    const applyHistoryFilter = () => {
+      const status = String(statusFilter?.value || "ALL").toUpperCase();
+      if (status === "ALL") {
+        render(historyCache);
+        return;
+      }
+      render(historyCache.filter((row) => String(row.status || "").toUpperCase() === status));
     };
 
     const DEFAULT_PAGE = 0;
@@ -263,9 +312,11 @@
         currentPage = page;
         currentSize = size;
         totalPages = Math.max(1, Number(res.pagination?.totalPages || 1));
-        render(Array.isArray(res.data) ? res.data : []);
+        historyCache = Array.isArray(res.data) ? res.data : [];
+        applyHistoryFilter();
         renderPaging();
       } catch (error) {
+        tableView.renderRows(tbody, [], "暂无历史借阅记录。", 6);
         if (empty) {
           empty.textContent = error.message || "历史数据加载失败";
           empty.classList.remove("hidden");
@@ -294,6 +345,9 @@
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadHistory);
     }
+    if (statusFilter) {
+      statusFilter.addEventListener("change", applyHistoryFilter);
+    }
     loadHistory();
     return;
   }
@@ -303,20 +357,23 @@
     const empty = document.getElementById("finesEmpty");
     const total = document.getElementById("finesTotal");
     const reloadBtn = document.getElementById("finesReloadBtn");
+    const finesSort = document.getElementById("finesSort");
+
+    let finesData = { totalFine: 0, records: [] };
 
     const render = (data) => {
       if (!tbody || !empty || !total) {
         return;
       }
-      const rows = Array.isArray(data.records) ? data.records : [];
+      const sortDirection = String(finesSort?.value || "DESC").toUpperCase();
+      const rows = (Array.isArray(data.records) ? data.records.slice() : [])
+        .sort((a, b) => {
+          const fa = asNumber(a.overdueFee);
+          const fb = asNumber(b.overdueFee);
+          return sortDirection === "ASC" ? fa - fb : fb - fa;
+        });
       total.textContent = String(data.totalFine ?? 0);
-      if (!rows.length) {
-        tbody.innerHTML = "";
-        empty.classList.remove("hidden");
-        return;
-      }
-      empty.classList.add("hidden");
-      tbody.innerHTML = rows.map((row) => `
+      const rowHtmlList = rows.map((row) => `
         <tr>
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
@@ -324,14 +381,18 @@
           <td>${escapeHtml(row.overdueFee)}</td>
           <td>${formatDate(row.createdAt)}</td>
         </tr>
-      `).join("");
+      `);
+      tableView.renderRows(tbody, rowHtmlList, "暂无罚金记录。", 5);
+      empty.classList.add("hidden");
     };
 
     const loadFines = async () => {
       try {
         const res = await userApi.getFines();
-        render(res.data || {});
+        finesData = res.data || { totalFine: 0, records: [] };
+        render(finesData);
       } catch (error) {
+        tableView.renderRows(tbody, [], "暂无罚金记录。", 5);
         if (empty) {
           empty.textContent = error.message || "罚金数据加载失败";
           empty.classList.remove("hidden");
@@ -341,6 +402,9 @@
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadFines);
+    }
+    if (finesSort) {
+      finesSort.addEventListener("change", () => render(finesData));
     }
     loadFines();
     return;
@@ -354,6 +418,9 @@
     const form = document.getElementById("profileForm");
     const hint = document.getElementById("profileHint");
     const reloadBtn = document.getElementById("profileReloadBtn");
+    const resetBtn = document.getElementById("profileResetBtn");
+
+    let lastLoadedProfile = null;
 
     const fillProfile = (profile) => {
       if (usernameEl) usernameEl.value = profile.username || "";
@@ -368,7 +435,8 @@
     const loadProfile = async () => {
       try {
         const res = await userApi.getProfile();
-        fillProfile(res.data || {});
+        lastLoadedProfile = res.data || {};
+        fillProfile(lastLoadedProfile);
       } catch (error) {
         if (hint) {
           hint.textContent = error.message || "资料加载失败";
@@ -379,6 +447,18 @@
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadProfile);
+    }
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        if (lastLoadedProfile) {
+          fillProfile(lastLoadedProfile);
+          return;
+        }
+        filterBar.resetInputs([realNameEl, phoneEl, idCardEl]);
+        if (hint) {
+          hint.classList.add("hidden");
+        }
+      });
     }
 
     if (form) {

@@ -42,7 +42,10 @@
                 <div class="glass-card panel-card">
                     <div class="section-head">
                         <h2 class="section-title">在借图书</h2>
-                        <button id="borrowingsReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                        <div class="toolbar-row">
+                            <button id="borrowingsReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                            <input id="borrowingsKeyword" type="text" placeholder="关键词筛选书名" />
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table class="site-table">
@@ -68,6 +71,8 @@
 <script src="/js/core/http.js"></script>
 <script src="/js/site-shell.js"></script>
 <script src="/js/api/user-api.js"></script>
+<script src="/js/ui/table.js"></script>
+<script src="/js/ui/filters.js"></script>
 <script src="/js/pages/user-dashboard.js"></script>
 </body>
 </html>
