@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图书管理系统 - 管理后台仪表盘</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-dot"></div>
+            <div>
+                <h1>图书管理系统</h1>
+                <p>Admin Console</p>
+            </div>
+        </div>
+        <nav class="nav-menu" aria-label="管理后台导航">
+            <a class="nav-item active" href="/admin/index.html"><span class="nav-ico">📊</span><span>后台仪表盘</span></a>
+            <a class="nav-item" href="/admin/notices.html"><span class="nav-ico">📢</span><span>公告管理</span></a>
+            <a class="nav-item" href="/index.html?legacy=1"><span class="nav-ico">🧭</span><span>旧版后台（兼容入口）</span></a>
+        </nav>
+        <div class="sidebar-foot">
+            <span class="role-tag" id="roleTag">管理员模式</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar glass-card">
+            <div>
+                <h2>管理后台仪表盘</h2>
+                <p class="muted">首页 &gt; 仪表盘</p>
+            </div>
+            <div class="topbar-actions">
+                <span id="adminUserInfo" class="pill">管理员</span>
+                <button id="logoutBtn" class="btn btn-danger" type="button">退出登录</button>
+            </div>
+        </header>
+
+        <section class="glass-card panel">
+            <div class="panel-head">
+                <h3>运营核心指标</h3>
+                <button id="refreshStatsBtn" class="btn btn-secondary" type="button">刷新数据</button>
+            </div>
+            <div class="stat-grid">
+                <article class="stat-card"><div class="name">系统用户总数</div><div id="statUserCount" class="value">--</div></article>
+                <article class="stat-card"><div class="name">馆藏图书总量</div><div id="statBookCount" class="value">--</div></article>
+                <article class="stat-card"><div class="name">累计借阅记录</div><div id="statBorrowCount" class="value">--</div></article>
+                <article class="stat-card"><div class="name">当前在借图书</div><div id="statActiveBorrowCount" class="value">--</div></article>
+                <article class="stat-card"><div class="name">逾期记录数量</div><div id="statOverdueRecordCount" class="value">--</div></article>
+            </div>
+        </section>
+
+        <section class="glass-card panel">
+            <div class="panel-head">
+                <h3>最新公告（预览）</h3>
+                <a class="btn" href="/admin/notices.html">进入公告管理</a>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>标题</th><th>发布状态</th><th>更新时间</th>
+                    </tr>
+                    </thead>
+                    <tbody id="latestNoticeTable"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div id="toast" aria-live="polite"></div>
+<script src="/js/core/http.js"></script>
+<script src="/js/ui/toast.js"></script>
+<script src="/js/pages/admin-dashboard.js"></script>
+</body>
+</html>

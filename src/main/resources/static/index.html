@@ -48,6 +48,14 @@
             </div>
         </header>
 
+        <section id="adminUpgradeGuide" class="glass-card panel">
+            <div class="panel-head">
+                <h3>后台入口升级提醒</h3>
+                <a class="btn" href="/admin/index.html">进入新版后台</a>
+            </div>
+            <p class="muted" id="adminUpgradeText">管理端已升级为独立页面（/admin/index.html 与 /admin/notices.html）。当前页面保留为兼容入口，可继续使用旧功能。</p>
+        </section>
+
         <section id="borrowQueryPage" class="page-section">
             <article class="glass-card panel">
                 <div class="panel-head">
@@ -376,6 +384,34 @@
 <script src="/js/pages/borrow.js"></script>
 <script src="/js/pages/admin-books.js"></script>
 <script src="/js/pages/admin-users.js"></script>
+<script>
+    (function initAdminEntryGuide() {
+        const params = new URLSearchParams(window.location.search || "");
+        const legacyMode = params.get("legacy") === "1";
+        const guideText = document.getElementById("adminUpgradeText");
+
+        if (legacyMode && guideText) {
+            guideText.textContent = "当前处于旧版兼容模式（legacy=1）。如需体验新版后台，请点击“进入新版后台”。";
+            return;
+        }
+
+        const token = localStorage.getItem("token") || "";
+        if (!token) {
+            return;
+        }
+
+        let user = null;
+        try {
+            user = JSON.parse(localStorage.getItem("user") || "null");
+        } catch (_error) {
+            return;
+        }
+
+        if (user && user.role === "ADMIN") {
+            window.location.replace("/admin/index.html");
+        }
+    })();
+</script>
 <script src="/js/app.js"></script>
 </body>
 </html>

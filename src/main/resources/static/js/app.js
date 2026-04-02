@@ -1614,6 +1614,13 @@ async function updateNotificationBadge(statsData = null) {
     return;
   }
 
+  const params = new URLSearchParams(window.location.search || "");
+  const legacyMode = params.get("legacy") === "1";
+  if (isAdmin() && !legacyMode) {
+    window.location.href = "/admin/index.html";
+    return;
+  }
+
   initNav();
   refreshUI();
   const defaultPage = isAdmin() ? "studentManage" : "borrowQuery";
