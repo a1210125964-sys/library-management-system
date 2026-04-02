@@ -12,6 +12,7 @@ import com.lms.service.NoticeService;
 import com.lms.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,7 +25,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.anyOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -81,6 +85,66 @@ class UserPortalHistoryPagingTest {
                 .queryParam("size", "10"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
+    }
+
+    @Test
+    void history_should_return_business_error_when_only_page_provided() throws Exception {
+        User user = buildUser();
+
+        Mockito.when(authService.requireUser("token")).thenReturn(user);
+
+        mockMvc.perform(get("/api/user/history")
+                .header("X-Token", "token")
+                .queryParam("page", "0"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"))
+            .andExpect(jsonPath("$.message").value("page 和 size 需同时提供"));
+    }
+
+    @Test
+    void history_should_return_business_error_when_size_is_zero() throws Exception {
+        User user = buildUser();
+
+        Mockito.when(authService.requireUser("token")).thenReturn(user);
+        Mockito.when(borrowService.myHistoryPaged(user, 0, 0))
+            .thenThrow(new BusinessException("分页参数 size 必须大于 0"));
+
+        mockMvc.perform(get("/api/user/history")
+                .header("X-Token", "token")
+                .queryParam("page", "0")
+                .queryParam("size", "0"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
+    }
+
+    @Test
+    void history_should_return_bad_request_when_page_type_is_invalid() throws Exception {
+        User user = buildUser();
+
+        Mockito.when(authService.requireUser("token")).thenReturn(user);
+
+        mockMvc.perform(get("/api/user/history")
+                .header("X-Token", "token")
+                .queryParam("page", "abc")
+                .queryParam("size", "10"))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.code", anyOf(is("BUSINESS_ERROR"), is("VALIDATION_ERROR"))));
+    }
+
+    @Test
+    void history_should_return_success_without_pagination_when_page_and_size_absent() throws Exception {
+        User user = buildUser();
+        BorrowRecord record = buildRecord(13L, BorrowStatus.RETURNED);
+
+        Mockito.when(authService.requireUser("token")).thenReturn(user);
+        Mockito.when(borrowService.myHistory(user)).thenReturn(List.of(record));
+
+        mockMvc.perform(get("/api/user/history")
+                .header("X-Token", "token"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value("SUCCESS"))
+            .andExpect(jsonPath("$.pagination").doesNotExist());
     }
 
     private User buildUser() {

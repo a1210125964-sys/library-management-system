@@ -2,6 +2,7 @@ package com.lms.controller;
 
 import com.lms.dto.ApiResponse;
 import com.lms.dto.UpdateProfileRequest;
+import com.lms.exception.BusinessException;
 import com.lms.model.BorrowRecord;
 import com.lms.model.OverdueRecord;
 import com.lms.model.User;
@@ -68,6 +69,9 @@ public class UserPortalController {
                                                           @RequestParam(required = false) Integer page,
                                                           @RequestParam(required = false) Integer size) {
         User user = authService.requireUser(token);
+        if ((page == null) != (size == null)) {
+            throw new BusinessException("page 和 size 需同时提供");
+        }
         if (page != null && size != null) {
             Page<BorrowRecord> result = borrowService.myHistoryPaged(user, page, size);
             List<Map<String, Object>> data = result.getContent().stream().map(this::recordMap).collect(Collectors.toList());
