@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图书管理系统 - 门户首页</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+<div class="site-shell">
+    <div class="container">
+        <header class="site-header glass-card">
+            <a class="site-logo" href="/home.html">LMS Portal</a>
+            <nav class="site-nav" aria-label="门户导航">
+                <a href="/home.html">首页</a>
+                <a href="/catalog.html">馆藏</a>
+                <a href="/news.html">公告</a>
+                <a href="/about.html">关于</a>
+            </nav>
+            <div class="site-auth">
+                <a href="/login.html">登录</a>
+                <a class="btn-link" href="/register.html">注册</a>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero glass-card">
+                <span class="hero-chip">智慧图书馆门户</span>
+                <h1>统一入口，连接馆藏检索、借阅服务与运营公告</h1>
+                <p>这里是图书管理系统公开门户。当前阶段先提供静态结构与视觉壳层，后续将逐步接入实时馆藏、公告详情与用户中心聚合数据。</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="/catalog.html">浏览馆藏</a>
+                    <a class="btn btn-ghost" href="/news.html">查看公告</a>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">核心功能</h2>
+                <div class="feature-grid">
+                    <article class="feature-card glass-card">
+                        <h3>馆藏检索</h3>
+                        <p>支持按书名、作者、分类进行快速检索，帮助读者快速定位目标图书。</p>
+                    </article>
+                    <article class="feature-card glass-card">
+                        <h3>公告发布</h3>
+                        <p>集中展示开馆通知、活动安排与维护提醒，信息同步透明。</p>
+                    </article>
+                    <article class="feature-card glass-card">
+                        <h3>账号服务</h3>
+                        <p>通过登录与注册入口接入借阅中心，后续支持借阅、续借与历史记录查询。</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <p>© <span id="currentYear"></span> 图书管理系统（LMS） · Public Portal</p>
+        </footer>
+    </div>
+</div>
+
+<script src="/js/site-shell.js"></script>
+</body>
+</html>
