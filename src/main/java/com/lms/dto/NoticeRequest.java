@@ -1,12 +1,15 @@
 package com.lms.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class NoticeRequest {
 
     @NotBlank
+    @Size(max = 255)
     private String title;
 
+    @Size(max = 500)
     private String summary;
 
     @NotBlank

@@ -25,6 +25,10 @@ public class NoticeService {
 
     @Transactional
     public Notice create(NoticeRequest req, User adminUser) {
+        if (adminUser == null) {
+            throw new BusinessException("管理员不存在");
+        }
+
         Notice notice = new Notice();
         notice.setTitle(req.getTitle());
         notice.setSummary(req.getSummary());

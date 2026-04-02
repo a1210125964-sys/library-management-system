@@ -1,6 +1,7 @@
 package com.lms.service;
 
 import com.lms.dto.NoticeRequest;
+import com.lms.exception.BusinessException;
 import com.lms.model.Notice;
 import com.lms.model.User;
 import com.lms.model.UserRole;
@@ -21,6 +22,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +63,24 @@ class NoticeServiceTest {
     }
 
     @Test
+    void create_should_set_published_at_null_when_not_published() {
+        NoticeRequest req = new NoticeRequest("维护通知", "摘要", "正文", false);
+        when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Notice created = noticeService.create(req, adminUser);
+
+        assertEquals(Boolean.FALSE, created.getPublished());
+        assertNull(created.getPublishedAt());
+    }
+
+    @Test
+    void create_should_throw_when_admin_user_is_null() {
+        NoticeRequest req = new NoticeRequest("开馆通知", "摘要", "正文", true);
+
+        assertThrows(BusinessException.class, () -> noticeService.create(req, null));
+    }
+
+    @Test
     void list_published_should_return_desc_order_with_pagination() {
         Notice newer = new Notice();
         newer.setTitle("新公告");
@@ -80,5 +101,38 @@ class NoticeServiceTest {
         assertEquals(0, pageable.getPageNumber());
         assertEquals(10, pageable.getPageSize());
         assertEquals("publishedAt: DESC", pageable.getSort().toString());
+    }
+
+    @Test
+    void list_published_should_clamp_negative_page() {
+        when(noticeRepository.findByPublishedTrue(any(Pageable.class))).thenReturn(Page.empty());
+
+        noticeService.listPublished(-3, 10);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(noticeRepository).findByPublishedTrue(pageableCaptor.capture());
+        assertEquals(0, pageableCaptor.getValue().getPageNumber());
+    }
+
+    @Test
+    void list_published_should_clamp_non_positive_size_to_one() {
+        when(noticeRepository.findByPublishedTrue(any(Pageable.class))).thenReturn(Page.empty());
+
+        noticeService.listPublished(0, 0);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(noticeRepository).findByPublishedTrue(pageableCaptor.capture());
+        assertEquals(1, pageableCaptor.getValue().getPageSize());
+    }
+
+    @Test
+    void list_published_should_clamp_oversize_to_hundred() {
+        when(noticeRepository.findByPublishedTrue(any(Pageable.class))).thenReturn(Page.empty());
+
+        noticeService.listPublished(0, 999);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(noticeRepository).findByPublishedTrue(pageableCaptor.capture());
+        assertEquals(100, pageableCaptor.getValue().getPageSize());
     }
 }
