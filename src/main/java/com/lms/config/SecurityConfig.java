@@ -34,7 +34,12 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/css/**", "/js/**").permitAll()
+                .requestMatchers(
+                    "/", "/index", "/home", "/catalog", "/news", "/news-detail", "/about",
+                    "/index.html", "/home.html", "/catalog.html", "/news.html", "/news-detail.html", "/about.html",
+                    "/login.html", "/register.html", "/css/**", "/js/**"
+                ).permitAll()
+                .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                 .requestMatchers("/api/admin/**", "/api/auth/register-admin").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
