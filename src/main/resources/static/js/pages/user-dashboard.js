@@ -65,6 +65,10 @@
       redirectToLogin();
     }
   });
+  if (!window.UserApi || typeof window.UserApi.create !== "function") {
+    redirectToLogin();
+    return;
+  }
   const userApi = window.UserApi.create(req, buildAppUrl);
 
   const escapeHtml = (value) => String(value ?? "")
@@ -109,6 +113,10 @@
           <td>${formatDate(row.dueTime)}</td>
           <td>${escapeHtml(row.status)}</td>
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
+          <td>
+            <button class="btn btn-ghost" type="button" data-action="renew" data-record-id="${escapeHtml(row.id)}">续借</button>
+            <button class="btn btn-ghost" type="button" data-action="return" data-record-id="${escapeHtml(row.id)}">归还</button>
+          </td>
         </tr>
       `).join("");
     };
@@ -190,6 +198,9 @@
     const tbody = document.getElementById("historyTableBody");
     const empty = document.getElementById("historyEmpty");
     const reloadBtn = document.getElementById("historyReloadBtn");
+    const prevBtn = document.getElementById("historyPrevBtn");
+    const nextBtn = document.getElementById("historyNextBtn");
+    const pageInfoEl = document.getElementById("historyPageInfo");
 
     const render = (rows) => {
       if (!tbody || !empty) {
@@ -217,17 +228,35 @@
     const DEFAULT_SIZE = 10;
     let currentPage = DEFAULT_PAGE;
     let currentSize = DEFAULT_SIZE;
+    let totalPages = 1;
+
+    const renderPaging = () => {
+      if (pageInfoEl) {
+        pageInfoEl.textContent = `第 ${currentPage + 1} / ${totalPages} 页`;
+      }
+      if (prevBtn) {
+        prevBtn.disabled = currentPage <= 0;
+      }
+      if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages - 1;
+      }
+    };
 
     const loadHistory = async ({ page = currentPage, size = currentSize } = {}) => {
       try {
         const res = await userApi.listHistory({ page, size });
         currentPage = page;
         currentSize = size;
+        totalPages = Math.max(1, Number(res.pagination?.totalPages || 1));
         render(Array.isArray(res.data) ? res.data : []);
+        renderPaging();
       } catch (error) {
         try {
           const fallbackRes = await userApi.listHistory();
+          currentPage = 0;
+          totalPages = 1;
           render(Array.isArray(fallbackRes.data) ? fallbackRes.data : []);
+          renderPaging();
         } catch (_fallbackError) {
           if (empty) {
             empty.textContent = error.message || "历史数据加载失败";
@@ -236,6 +265,24 @@
         }
       }
     };
+
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        if (currentPage <= 0) {
+          return;
+        }
+        loadHistory({ page: currentPage - 1, size: currentSize });
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        if (currentPage >= totalPages - 1) {
+          return;
+        }
+        loadHistory({ page: currentPage + 1, size: currentSize });
+      });
+    }
 
     if (reloadBtn) {
       reloadBtn.addEventListener("click", loadHistory);
