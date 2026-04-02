@@ -84,3 +84,15 @@ CREATE TABLE IF NOT EXISTS system_configs (
     config_value VARCHAR(100) NOT NULL,
     description VARCHAR(255)
 );
+
+CREATE TABLE IF NOT EXISTS notices (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    summary VARCHAR(500),
+    content TEXT NOT NULL,
+    published TINYINT(1) NOT NULL DEFAULT 0,
+    published_at DATETIME,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_notices_published_time (published, published_at)
+);
