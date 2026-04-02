@@ -117,6 +117,13 @@ public class BorrowService {
         );
     }
 
+    public List<BorrowRecord> myHistory(User user) {
+        return borrowRecordRepository.findByUserAndStatusesWithBook(
+            user,
+            List.of(BorrowStatus.RETURNED)
+        );
+    }
+
     public List<OverdueRecord> myOverdueRecords(User user) {
         return overdueRecordRepository.findByUserWithDetails(user);
     }

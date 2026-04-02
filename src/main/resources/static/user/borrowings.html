@@ -39,8 +39,22 @@
             </section>
 
             <section>
-                <div class="empty-state glass-card">
-                    当前借阅页面已就绪。登录态守卫已生效，后续将接入借阅列表数据。
+                <div class="glass-card panel-card">
+                    <div class="section-head">
+                        <h2 class="section-title">在借图书</h2>
+                        <button id="borrowingsReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="site-table">
+                            <thead>
+                            <tr>
+                                <th>记录ID</th><th>书名</th><th>借阅时间</th><th>应还时间</th><th>状态</th><th>逾期费</th>
+                            </tr>
+                            </thead>
+                            <tbody id="borrowingsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="borrowingsEmpty" class="empty-state hidden">当前无在借图书。</div>
                 </div>
             </section>
         </main>

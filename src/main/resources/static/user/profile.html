@@ -39,8 +39,35 @@
             </section>
 
             <section>
-                <div class="empty-state glass-card">
-                    个人资料页面已就绪。后续将接入用户信息查询与更新表单。
+                <div class="glass-card panel-card">
+                    <div class="section-head">
+                        <h2 class="section-title">个人资料</h2>
+                        <button id="profileReloadBtn" class="btn btn-ghost" type="button">重载</button>
+                    </div>
+                    <form id="profileForm" class="site-form" novalidate>
+                        <div class="form-grid">
+                            <div>
+                                <label for="profileUsername">用户名</label>
+                                <input id="profileUsername" type="text" disabled />
+                            </div>
+                            <div>
+                                <label for="profileRealName">真实姓名</label>
+                                <input id="profileRealName" type="text" required />
+                            </div>
+                            <div>
+                                <label for="profilePhone">手机号</label>
+                                <input id="profilePhone" type="text" required />
+                            </div>
+                            <div>
+                                <label for="profileIdCard">身份证号</label>
+                                <input id="profileIdCard" type="text" required />
+                            </div>
+                        </div>
+                        <div class="toolbar-row">
+                            <button id="profileSubmitBtn" class="btn btn-primary" type="submit">保存资料</button>
+                        </div>
+                    </form>
+                    <div id="profileHint" class="empty-state hidden"></div>
                 </div>
             </section>
         </main>

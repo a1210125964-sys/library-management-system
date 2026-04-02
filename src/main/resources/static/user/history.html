@@ -39,8 +39,22 @@
             </section>
 
             <section>
-                <div class="empty-state glass-card">
-                    借阅历史页面已就绪。后续将接入历史借阅与筛选功能。
+                <div class="glass-card panel-card">
+                    <div class="section-head">
+                        <h2 class="section-title">历史借阅</h2>
+                        <button id="historyReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="site-table">
+                            <thead>
+                            <tr>
+                                <th>记录ID</th><th>书名</th><th>借阅时间</th><th>归还时间</th><th>状态</th><th>逾期费</th>
+                            </tr>
+                            </thead>
+                            <tbody id="historyTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="historyEmpty" class="empty-state hidden">暂无历史借阅记录。</div>
                 </div>
             </section>
         </main>

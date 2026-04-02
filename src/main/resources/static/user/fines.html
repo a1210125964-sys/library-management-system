@@ -39,8 +39,23 @@
             </section>
 
             <section>
-                <div class="empty-state glass-card">
-                    罚款记录页面已就绪。后续将接入罚款账单与支付状态。
+                <div class="glass-card panel-card">
+                    <div class="section-head">
+                        <h2 class="section-title">罚金明细</h2>
+                        <button id="finesReloadBtn" class="btn btn-ghost" type="button">刷新</button>
+                    </div>
+                    <p class="meta-text">累计待处理罚金：<strong id="finesTotal">--</strong> 元</p>
+                    <div class="table-wrap">
+                        <table class="site-table">
+                            <thead>
+                            <tr>
+                                <th>记录ID</th><th>书名</th><th>逾期天数</th><th>罚金</th><th>生成时间</th>
+                            </tr>
+                            </thead>
+                            <tbody id="finesTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="finesEmpty" class="empty-state hidden">暂无罚金记录。</div>
                 </div>
             </section>
         </main>
