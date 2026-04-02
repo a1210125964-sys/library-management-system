@@ -25,6 +25,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -86,6 +87,68 @@ class AdminNoticeControllerTest {
             .andExpect(jsonPath("$.code").value("SUCCESS"));
 
         verify(adminLogService).log(eq(admin), eq("创建公告"), eq("noticeId=100"), eq("SUCCESS"), anyLong(), eq("203.0.113.10"), eq("JUnit-UA"));
+    }
+
+    @Test
+    void create_notice_should_still_succeed_when_audit_log_fails() throws Exception {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setRole(UserRole.ADMIN);
+
+        Notice created = new Notice();
+        created.setId(100L);
+        created.setTitle("系统维护");
+        created.setSummary("摘要");
+        created.setContent("正文");
+        created.setPublished(true);
+        created.setPublishedAt(LocalDateTime.now());
+
+        Mockito.when(authService.requireAdmin("admin-token")).thenReturn(admin);
+        Mockito.when(noticeService.create(ArgumentMatchers.any(), ArgumentMatchers.eq(admin))).thenReturn(created);
+        doThrow(new RuntimeException("db unavailable")).when(adminLogService)
+            .log(eq(admin), eq("创建公告"), eq("noticeId=100"), eq("SUCCESS"), anyLong(), eq("203.0.113.10"), eq("JUnit-UA"));
+
+        mockMvc.perform(post("/api/admin/notices")
+                .header("X-Token", "admin-token")
+                .header("X-Forwarded-For", "203.0.113.10")
+                .header("User-Agent", "JUnit-UA")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"系统维护\",\"summary\":\"摘要\",\"content\":\"正文\",\"published\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value("SUCCESS"));
+    }
+
+    @Test
+    void create_notice_should_use_remote_addr_when_proxy_is_untrusted() throws Exception {
+        User admin = new User();
+        admin.setId(1L);
+        admin.setRole(UserRole.ADMIN);
+
+        Notice created = new Notice();
+        created.setId(100L);
+        created.setTitle("系统维护");
+        created.setSummary("摘要");
+        created.setContent("正文");
+        created.setPublished(true);
+        created.setPublishedAt(LocalDateTime.now());
+
+        Mockito.when(authService.requireAdmin("admin-token")).thenReturn(admin);
+        Mockito.when(noticeService.create(ArgumentMatchers.any(), ArgumentMatchers.eq(admin))).thenReturn(created);
+
+        mockMvc.perform(post("/api/admin/notices")
+                .header("X-Token", "admin-token")
+                .header("X-Forwarded-For", "203.0.113.10")
+                .header("User-Agent", "JUnit-UA")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"系统维护\",\"summary\":\"摘要\",\"content\":\"正文\",\"published\":true}")
+                .with(req -> {
+                    req.setRemoteAddr("198.51.100.20");
+                    return req;
+                }))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value("SUCCESS"));
+
+        verify(adminLogService).log(eq(admin), eq("创建公告"), eq("noticeId=100"), eq("SUCCESS"), anyLong(), eq("198.51.100.20"), eq("JUnit-UA"));
     }
 
     @Test

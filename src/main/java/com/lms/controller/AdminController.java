@@ -16,6 +16,8 @@ import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     private final AuthService authService;
     private final StatisticsService statisticsService;
@@ -159,13 +163,11 @@ public class AdminController {
         long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         Notice notice = noticeService.create(req, admin);
-        adminLogService.log(admin,
+        safeLogAdminOperation(admin,
             "创建公告",
             "noticeId=" + notice.getId(),
-            "SUCCESS",
             System.currentTimeMillis() - start,
-            resolveClientIp(request),
-            request.getHeader("User-Agent"));
+            request);
         return ApiResponse.success("创建成功", noticeMap(notice));
     }
 
@@ -177,13 +179,11 @@ public class AdminController {
         long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         Notice notice = noticeService.update(id, req, admin);
-        adminLogService.log(admin,
+        safeLogAdminOperation(admin,
             "更新公告",
             "noticeId=" + id,
-            "SUCCESS",
             System.currentTimeMillis() - start,
-            resolveClientIp(request),
-            request.getHeader("User-Agent"));
+            request);
         return ApiResponse.success("更新成功", noticeMap(notice));
     }
 
@@ -194,13 +194,11 @@ public class AdminController {
         long start = System.currentTimeMillis();
         User admin = authService.requireAdmin(token);
         noticeService.delete(id, admin);
-        adminLogService.log(admin,
+        safeLogAdminOperation(admin,
             "删除公告",
             "noticeId=" + id,
-            "SUCCESS",
             System.currentTimeMillis() - start,
-            resolveClientIp(request),
-            request.getHeader("User-Agent"));
+            request);
         return ApiResponse.success("删除成功", null);
     }
 
@@ -301,11 +299,43 @@ public class AdminController {
         }
     }
 
+    private void safeLogAdminOperation(User admin,
+                                       String operation,
+                                       String detail,
+                                       long durationMs,
+                                       HttpServletRequest request) {
+        try {
+            adminLogService.log(admin,
+                operation,
+                detail,
+                "SUCCESS",
+                durationMs,
+                resolveClientIp(request),
+                request.getHeader("User-Agent"));
+        } catch (RuntimeException ex) {
+            log.warn("Admin audit log degraded: operation={}, detail={}, adminId={}",
+                operation,
+                detail,
+                admin == null ? null : admin.getId(),
+                ex);
+        }
+    }
+
     private String resolveClientIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
+        if (!isTrustedProxy(remoteAddr)) {
+            return remoteAddr;
+        }
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }
-        return request.getRemoteAddr();
+        return remoteAddr;
+    }
+
+    private boolean isTrustedProxy(String remoteAddr) {
+        return "127.0.0.1".equals(remoteAddr)
+            || "::1".equals(remoteAddr)
+            || "0:0:0:0:0:0:0:1".equals(remoteAddr);
     }
 }
