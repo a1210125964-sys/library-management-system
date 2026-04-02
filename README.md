@@ -65,9 +65,10 @@ http://localhost:8080
 
 ### 新页面入口
 
+- 兼容跳转页：`/index.html`（仅用于提示入口升级，不再提供旧后台功能）
 - 门户：`/home.html`
 - 用户中心：`/user/dashboard.html`
-- 管理后台：`/admin/index.html`
+- 管理后台：`/admin/index.html`（请使用该地址进入新版后台）
 
 ## 3. 默认管理员
 

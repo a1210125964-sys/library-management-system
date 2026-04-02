@@ -3,10 +3,113 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>图书管理系统</title>
-    <link rel="stylesheet" href="/css/style.css" />
+    <title>图书管理系统 - 入口升级提示</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #e5e7eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --card: #111827;
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --primary: #3b82f6;
+                --primary-hover: #60a5fa;
+                --secondary: #374151;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+            padding: 28px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 1.7rem;
+        }
+
+        .desc {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .actions {
+            margin-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .btn {
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text);
+        }
+
+        .tip {
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+    </style>
 </head>
 <body>
+<section class="card" aria-labelledby="upgrade-title">
+    <h1 id="upgrade-title">后台入口已升级</h1>
+    <p class="desc">旧版后台入口（/index.html）已降级为兼容跳转页，不再承载后台业务模块。</p>
+    <div class="actions">
+        <a class="btn btn-primary" href="/admin/index.html">前往新版后台</a>
+        <a class="btn btn-secondary" href="/home.html">返回门户首页</a>
+    </div>
+    <p class="tip">温馨提示：如果你通过旧链接进入，请更新浏览器收藏到 /admin/index.html 或 /home.html。</p>
+</section>
+<!-- legacy-admin-shell deprecated: start
 <div class="app-shell">
     <aside class="sidebar">
         <div class="brand">
@@ -413,5 +516,6 @@
     })();
 </script>
 <script src="/js/app.js"></script>
+legacy-admin-shell deprecated: end -->
 </body>
 </html>
