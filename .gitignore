@@ -67,3 +67,5 @@ dist/
 # ==============================
 skills/
 开发文档.md
+docs/
+.worktrees/
