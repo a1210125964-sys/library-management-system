@@ -3,6 +3,8 @@ package com.lms.repository;
 import com.lms.model.BorrowRecord;
 import com.lms.model.BorrowStatus;
 import com.lms.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +17,9 @@ import java.util.List;
 public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long> {
     List<BorrowRecord> findByUserOrderByBorrowTimeDesc(User user);
     List<BorrowRecord> findByUserAndStatusInOrderByBorrowTimeDesc(User user, Collection<BorrowStatus> statuses);
+    Page<BorrowRecord> findByUserAndStatusInOrderByBorrowTimeDesc(User user,
+                                                                   Collection<BorrowStatus> statuses,
+                                                                   Pageable pageable);
     long countByUserAndStatus(User user, BorrowStatus status);
     long countByUserIdAndStatusIn(Long userId, Collection<BorrowStatus> statuses);
     long countByUserIdAndStatus(Long userId, BorrowStatus status);

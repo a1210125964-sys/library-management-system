@@ -10,10 +10,12 @@ import com.lms.service.BorrowService;
 import com.lms.service.NoticeService;
 import com.lms.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -62,8 +64,15 @@ public class UserPortalController {
     }
 
     @GetMapping("/history")
-    public ApiResponse<List<Map<String, Object>>> history(@RequestHeader("X-Token") String token) {
+    public ApiResponse<List<Map<String, Object>>> history(@RequestHeader("X-Token") String token,
+                                                          @RequestParam(required = false) Integer page,
+                                                          @RequestParam(required = false) Integer size) {
         User user = authService.requireUser(token);
+        if (page != null && size != null) {
+            Page<BorrowRecord> result = borrowService.myHistoryPaged(user, page, size);
+            List<Map<String, Object>> data = result.getContent().stream().map(this::recordMap).collect(Collectors.toList());
+            return ApiResponse.success("查询成功", data, pagination(result));
+        }
         List<Map<String, Object>> data = borrowService.myHistory(user).stream().map(this::recordMap).collect(Collectors.toList());
         return ApiResponse.success("查询成功", data);
     }
@@ -129,6 +138,17 @@ public class UserPortalController {
         map.put("phone", user.getPhone());
         map.put("idCard", user.getIdCard());
         map.put("role", user.getRole());
+        return map;
+    }
+
+    private Map<String, Object> pagination(Page<?> page) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("page", page.getNumber());
+        map.put("size", page.getSize());
+        map.put("totalElements", page.getTotalElements());
+        map.put("totalPages", page.getTotalPages());
+        map.put("first", page.isFirst());
+        map.put("last", page.isLast());
         return map;
     }
 }

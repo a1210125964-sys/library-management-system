@@ -4,6 +4,8 @@ import com.lms.exception.BusinessException;
 import com.lms.model.*;
 import com.lms.repository.BorrowRecordRepository;
 import com.lms.repository.OverdueRecordRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -121,6 +123,14 @@ public class BorrowService {
         return borrowRecordRepository.findByUserAndStatusesWithBook(
             user,
             List.of(BorrowStatus.RETURNED)
+        );
+    }
+
+    public Page<BorrowRecord> myHistoryPaged(User user, int page, int size) {
+        return borrowRecordRepository.findByUserAndStatusInOrderByBorrowTimeDesc(
+            user,
+            List.of(BorrowStatus.RETURNED, BorrowStatus.OVERDUE),
+            PageRequest.of(page, size)
         );
     }
 
