@@ -16,6 +16,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     boolean existsByIsbn(String isbn);
     long countByCategory(String category);
 
+    @Query("select coalesce(sum(b.stock), 0), coalesce(sum(b.availableStock), 0) from Book b")
+    Object[] sumStockAndAvailableStock();
+
     @Modifying
     @Query("update Book b set b.category = :newName where b.category = :oldName")
     int renameCategory(@Param("oldName") String oldName, @Param("newName") String newName);
