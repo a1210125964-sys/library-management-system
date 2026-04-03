@@ -36,4 +36,27 @@
   if (yearEl) {
     yearEl.textContent = String(new Date().getFullYear());
   }
+
+  const parseStoredUser = () => {
+    const raw = localStorage.getItem("user") || "";
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  document.querySelectorAll("[data-user-center-link='true']").forEach((link) => {
+    const token = localStorage.getItem("token") || "";
+    const user = parseStoredUser();
+    const target = token && user ? "/user/dashboard.html" : "/login.html";
+    link.setAttribute("href", target);
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.location.href = target;
+    });
+  });
 })();

@@ -78,6 +78,66 @@ CREATE TABLE IF NOT EXISTS admin_operation_logs (
     CONSTRAINT fk_admin_log_user FOREIGN KEY (admin_id) REFERENCES users(id)
 );
 
+SET @col_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'admin_operation_logs'
+      AND COLUMN_NAME = 'result'
+);
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE admin_operation_logs ADD COLUMN result VARCHAR(20)',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'admin_operation_logs'
+      AND COLUMN_NAME = 'duration_ms'
+);
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE admin_operation_logs ADD COLUMN duration_ms BIGINT',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'admin_operation_logs'
+      AND COLUMN_NAME = 'client_ip'
+);
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE admin_operation_logs ADD COLUMN client_ip VARCHAR(64)',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @col_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'admin_operation_logs'
+      AND COLUMN_NAME = 'user_agent'
+);
+SET @ddl := IF(@col_exists = 0,
+    'ALTER TABLE admin_operation_logs ADD COLUMN user_agent VARCHAR(512)',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS system_configs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     config_key VARCHAR(100) NOT NULL UNIQUE,

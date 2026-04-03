@@ -23,7 +23,6 @@
             <a class="nav-item active" href="records.html"><span class="nav-ico">🧾</span><span>借阅记录</span></a>
             <a class="nav-item" href="logs.html"><span class="nav-ico">📜</span><span>系统日志</span></a>
             <a class="nav-item" href="notices.html"><span class="nav-ico">📢</span><span>公告管理</span></a>
-            <a class="nav-item" href="../index.html?legacy=1"><span class="nav-ico">🧭</span><span>旧版后台（兼容入口）</span></a>
         </nav>
         <div class="sidebar-foot">
             <span class="role-tag">管理员模式</span>
@@ -45,8 +44,35 @@
         <section class="glass-card panel">
             <div class="panel-head">
                 <h3>借阅记录模块</h3>
+                <button id="recordsReloadBtn" class="btn btn-secondary" type="button">刷新</button>
             </div>
-            <p class="muted">功能建设中，将在后续任务接入数据。</p>
+            <div class="row compact" style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="recordsStatusFilter" class="inline-field" style="max-width: 180px;">
+                    <option value="">全部状态</option>
+                    <option value="BORROWED">借阅中</option>
+                    <option value="OVERDUE">已逾期</option>
+                    <option value="RETURNED">已归还</option>
+                </select>
+                <input id="recordsKeyword" class="inline-field" placeholder="用户名/姓名/书名关键词" />
+                <button id="recordsSearchBtn" class="btn btn-secondary" type="button">查询</button>
+                <button id="recordsResetBtn" class="btn btn-secondary" type="button">重置</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>用户</th><th>图书</th><th>借阅时间</th><th>应还时间</th><th>归还时间</th><th>状态</th><th>续借次数</th><th>逾期费</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recordTable"></tbody>
+                </table>
+            </div>
+            <div class="row compact" style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                <button id="recordsPrevPage" class="btn btn-secondary" type="button">上一页</button>
+                <span id="recordsPageInfo" class="muted">第 1 / 1 页</span>
+                <button id="recordsNextPage" class="btn btn-secondary" type="button">下一页</button>
+            </div>
         </section>
     </main>
 </div>

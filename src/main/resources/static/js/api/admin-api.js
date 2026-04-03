@@ -57,11 +57,8 @@
         return get("/api/admin/logs", { page, size, operation, startTime, endTime });
       },
 
-      listRecords(_params) {
-        return Promise.resolve({
-          message: "管理员借阅记录接口暂未开放",
-          data: []
-        });
+      listRecords({ page = 0, size = 10, status = "", keyword = "" } = {}) {
+        return get("/api/admin/records", { page, size, status, keyword });
       }
     };
   };

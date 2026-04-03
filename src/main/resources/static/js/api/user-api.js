@@ -31,6 +31,14 @@
         return get("/api/user/dashboard");
       },
 
+      listCatalogBooks(params) {
+        return get("/api/books", {
+          keyword: params?.keyword,
+          page: params?.page,
+          size: params?.size
+        });
+      },
+
       listBorrowings() {
         return get("/api/user/borrowings");
       },
@@ -57,12 +65,16 @@
         return req(buildAppUrl("/api/user/profile"), "PUT", payload);
       },
 
-      renewBorrow(recordId) {
-        return post(`/api/borrow/renew/${recordId}`);
+      renewBorrow(recordId, dueTime) {
+        return post(`/api/borrow/renew/${recordId}`, { dueTime });
       },
 
       returnBorrow(recordId) {
         return post(`/api/borrow/return/${recordId}`);
+      },
+
+      borrowBook(bookId, dueTime) {
+        return post(`/api/borrow/${bookId}`, { dueTime });
       }
     };
   };

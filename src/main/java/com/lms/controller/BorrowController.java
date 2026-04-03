@@ -1,11 +1,13 @@
 package com.lms.controller;
 
 import com.lms.dto.ApiResponse;
+import com.lms.dto.DueTimeRequest;
 import com.lms.model.BorrowRecord;
 import com.lms.model.OverdueRecord;
 import com.lms.model.User;
 import com.lms.service.AuthService;
 import com.lms.service.BorrowService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -26,9 +28,11 @@ public class BorrowController {
     }
 
     @PostMapping("/{bookId}")
-    public ApiResponse<Map<String, Object>> borrow(@RequestHeader("X-Token") String token, @PathVariable Long bookId) {
+    public ApiResponse<Map<String, Object>> borrow(@RequestHeader("X-Token") String token,
+                                                   @PathVariable Long bookId,
+                                                   @RequestBody(required = false) @Valid DueTimeRequest req) {
         User user = authService.requireUser(token);
-        BorrowRecord record = borrowService.borrow(user, bookId);
+        BorrowRecord record = borrowService.borrow(user, bookId, req == null ? null : req.getDueTime());
         return ApiResponse.success("借阅成功", recordMap(record));
     }
 
@@ -40,9 +44,11 @@ public class BorrowController {
     }
 
     @PostMapping("/renew/{recordId}")
-    public ApiResponse<Map<String, Object>> renew(@RequestHeader("X-Token") String token, @PathVariable Long recordId) {
+    public ApiResponse<Map<String, Object>> renew(@RequestHeader("X-Token") String token,
+                                                  @PathVariable Long recordId,
+                                                  @RequestBody(required = false) @Valid DueTimeRequest req) {
         User user = authService.requireUser(token);
-        BorrowRecord record = borrowService.renew(user, recordId);
+        BorrowRecord record = borrowService.renew(user, recordId, req == null ? null : req.getDueTime());
         return ApiResponse.success("续借成功", recordMap(record));
     }
 

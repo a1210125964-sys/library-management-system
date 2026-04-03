@@ -35,7 +35,13 @@
   }
 
   if (!token || !user) {
+    clearSession();
     redirectToLogin();
+    return;
+  }
+
+  if (String(user.role || "").toUpperCase() === "ADMIN") {
+    window.location.href = buildAppUrl("/admin/index.html");
     return;
   }
 
@@ -117,11 +123,24 @@
     return Number.isFinite(n) ? n : 0;
   };
 
-  const formatDate = (value) => {
+  const formatDateTime = (value) => {
     if (!value) {
       return "-";
     }
-    return escapeHtml(value);
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return escapeHtml(value);
+    }
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const statusLabel = (status) => {
+    const code = String(status || "").toUpperCase();
+    if (code === "BORROWED") return "借阅中";
+    if (code === "OVERDUE") return "已逾期";
+    if (code === "RETURNED") return "已归还";
+    return code || "-";
   };
 
   if (path.endsWith("/borrowings.html")) {
@@ -129,6 +148,85 @@
     const empty = document.getElementById("borrowingsEmpty");
     const reloadBtn = document.getElementById("borrowingsReloadBtn");
     const keywordInput = document.getElementById("borrowingsKeyword");
+    const inventoryBody = document.getElementById("inventoryTableBody");
+    const inventoryEmpty = document.getElementById("inventoryEmpty");
+    const inventoryReloadBtn = document.getElementById("inventoryReloadBtn");
+    const inventoryKeywordInput = document.getElementById("inventoryKeyword");
+    const inventoryPrevBtn = document.getElementById("inventoryPrevBtn");
+    const inventoryNextBtn = document.getElementById("inventoryNextBtn");
+    const inventoryPageInfo = document.getElementById("inventoryPageInfo");
+    const dueTimeModal = document.getElementById("dueTimeModal");
+    const dueTimeInput = document.getElementById("dueTimeInput");
+    const dueTimeTip = document.getElementById("dueTimeModalTip");
+    const dueTimeConfirmBtn = document.getElementById("dueTimeConfirmBtn");
+    const dueTimeCancelBtn = document.getElementById("dueTimeCancelBtn");
+
+    const setLoading = (btn, loading) => {
+      if (!btn) {
+        return;
+      }
+      if (loading) {
+        btn.disabled = true;
+        btn.classList.add("btn-loading");
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("btn-loading");
+      }
+    };
+
+    const toLocalInputValue = (date) => {
+      const d = date instanceof Date ? date : new Date(date);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const openDueTimeModal = ({ mode, baseTime }) => new Promise((resolve) => {
+      if (!dueTimeModal || !dueTimeInput || !dueTimeConfirmBtn || !dueTimeCancelBtn) {
+        resolve(null);
+        return;
+      }
+
+      const startTime = new Date(baseTime);
+      const minTime = new Date(startTime.getTime() + 60 * 1000);
+      const maxTime = new Date(startTime);
+      maxTime.setMonth(maxTime.getMonth() + 1);
+      dueTimeInput.min = toLocalInputValue(minTime);
+      dueTimeInput.max = toLocalInputValue(maxTime);
+      dueTimeInput.value = toLocalInputValue(minTime);
+      if (dueTimeTip) {
+        dueTimeTip.textContent = mode === "renew"
+          ? "续借后的应还时间需晚于当前应还时间，且不能超过 1 个月"
+          : "借书应还时间需晚于当前时间，且不能超过 1 个月";
+      }
+
+      dueTimeModal.classList.remove("hidden");
+
+      const close = (value) => {
+        dueTimeModal.classList.add("hidden");
+        dueTimeConfirmBtn.removeEventListener("click", onConfirm);
+        dueTimeCancelBtn.removeEventListener("click", onCancel);
+        dueTimeModal.removeEventListener("click", onMaskClick);
+        resolve(value);
+      };
+
+      const onConfirm = () => {
+        if (!dueTimeInput.value) {
+          close(null);
+          return;
+        }
+        close(dueTimeInput.value);
+      };
+      const onCancel = () => close(null);
+      const onMaskClick = (event) => {
+        if (event.target === dueTimeModal) {
+          close(null);
+        }
+      };
+
+      dueTimeConfirmBtn.addEventListener("click", onConfirm);
+      dueTimeCancelBtn.addEventListener("click", onCancel);
+      dueTimeModal.addEventListener("click", onMaskClick);
+    });
 
     let borrowingsCache = [];
 
@@ -141,7 +239,7 @@
         const renewDisabled = status !== "BORROWED" || Number(row.renewCount || 0) >= 1;
         const returnDisabled = status === "RETURNED";
         return `
-          <button class="btn btn-ghost" type="button" data-action="renew" data-record-id="${escapeHtml(row.id)}" ${renewDisabled ? "disabled" : ""}>续借</button>
+          <button class="btn btn-ghost btn-animated" type="button" data-action="renew" data-record-id="${escapeHtml(row.id)}" data-due-time="${escapeHtml(row.dueTime)}" ${renewDisabled ? "disabled" : ""}>续借</button>
           <button class="btn btn-ghost" type="button" data-action="return" data-record-id="${escapeHtml(row.id)}" ${returnDisabled ? "disabled" : ""}>归还</button>
         `;
       };
@@ -150,9 +248,9 @@
         <tr data-record-id="${escapeHtml(row.id)}">
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
-          <td>${formatDate(row.borrowTime)}</td>
-          <td>${formatDate(row.dueTime)}</td>
-          <td>${escapeHtml(row.status)}</td>
+          <td>${formatDateTime(row.borrowTime)}</td>
+          <td>${formatDateTime(row.dueTime)}</td>
+          <td>${statusLabel(row.status)}</td>
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
           <td>${actionHtml(row)}</td>
         </tr>
@@ -195,11 +293,19 @@
 
     const runBorrowAction = async (action, recordId, triggerEl) => {
       if (triggerEl) {
-        triggerEl.disabled = true;
+        setLoading(triggerEl, true);
       }
       try {
         if (action === "renew") {
-          await userApi.renewBorrow(recordId);
+          const currentDueTime = triggerEl?.dataset?.dueTime || new Date().toISOString();
+          const selectedDueTime = await openDueTimeModal({
+            mode: "renew",
+            baseTime: currentDueTime
+          });
+          if (!selectedDueTime) {
+            return;
+          }
+          await userApi.renewBorrow(recordId, selectedDueTime);
         } else if (action === "return") {
           await userApi.returnBorrow(recordId);
         }
@@ -211,7 +317,107 @@
         }
       } finally {
         if (triggerEl) {
-          triggerEl.disabled = false;
+          setLoading(triggerEl, false);
+        }
+      }
+    };
+
+    let inventoryPage = 0;
+    let inventorySize = 8;
+    let inventoryTotalPages = 1;
+    let inventoryKeyword = "";
+
+    const renderInventoryPaging = () => {
+      if (inventoryPageInfo) {
+        inventoryPageInfo.textContent = `第 ${inventoryPage + 1} / ${inventoryTotalPages} 页`;
+      }
+      if (inventoryPrevBtn) {
+        inventoryPrevBtn.disabled = inventoryPage <= 0;
+      }
+      if (inventoryNextBtn) {
+        inventoryNextBtn.disabled = inventoryPage >= inventoryTotalPages - 1;
+      }
+    };
+
+    const renderInventory = (rows) => {
+      if (!inventoryBody || !inventoryEmpty) {
+        return;
+      }
+      const rowHtmlList = rows.map((book) => {
+        const available = asNumber(book.availableStock);
+        return `
+          <tr data-book-id="${escapeHtml(book.id)}">
+            <td>${escapeHtml(book.id)}</td>
+            <td>${escapeHtml(book.title)}</td>
+            <td>${escapeHtml(book.author)}</td>
+            <td>${escapeHtml(book.category || "-")}</td>
+            <td>${available}</td>
+            <td>
+              <button class="btn btn-ghost btn-animated" type="button" data-action="borrow" data-book-id="${escapeHtml(book.id)}" ${available > 0 ? "" : "disabled"}>借书</button>
+            </td>
+          </tr>
+        `;
+      });
+      tableView.renderRows(inventoryBody, rowHtmlList, "暂无可借图书。", 6);
+      inventoryEmpty.classList.add("hidden");
+      renderInventoryPaging();
+    };
+
+    const loadInventory = async ({ page = inventoryPage, keyword = inventoryKeyword } = {}) => {
+      try {
+        const res = await userApi.listCatalogBooks({
+          page,
+          size: inventorySize,
+          keyword
+        });
+        inventoryPage = Math.max(0, Number(res.pagination?.page ?? page));
+        inventorySize = Math.max(1, Number(res.pagination?.size ?? inventorySize));
+        inventoryTotalPages = Math.max(1, Number(res.pagination?.totalPages ?? 1));
+        inventoryKeyword = keyword;
+        const rows = Array.isArray(res.data) ? res.data : [];
+        renderInventory(rows);
+      } catch (error) {
+        tableView.renderRows(inventoryBody, [], "暂无可借图书。", 6);
+        if (inventoryEmpty) {
+          inventoryEmpty.textContent = error.message || "可借图书加载失败";
+          inventoryEmpty.classList.remove("hidden");
+        }
+      }
+    };
+
+    const parseBookId = (actionEl) => {
+      const fromAction = actionEl?.dataset?.bookId || actionEl?.getAttribute("data-book-id");
+      const fromRow = actionEl?.closest("tr")?.dataset?.bookId || actionEl?.closest("tr")?.getAttribute("data-book-id");
+      const raw = fromAction ?? fromRow;
+      const id = Number(raw);
+      return Number.isInteger(id) && id > 0 ? id : null;
+    };
+
+    const borrowBook = async (bookId, triggerEl) => {
+      if (triggerEl) {
+        setLoading(triggerEl, true);
+      }
+      try {
+        const selectedDueTime = await openDueTimeModal({
+          mode: "borrow",
+          baseTime: new Date()
+        });
+        if (!selectedDueTime) {
+          return;
+        }
+        await userApi.borrowBook(bookId, selectedDueTime);
+        await Promise.all([
+          loadBorrowings(),
+          loadInventory({ page: inventoryPage, keyword: inventoryKeyword })
+        ]);
+      } catch (error) {
+        if (inventoryEmpty) {
+          inventoryEmpty.textContent = error.message || "借书失败";
+          inventoryEmpty.classList.remove("hidden");
+        }
+      } finally {
+        if (triggerEl) {
+          setLoading(triggerEl, false);
         }
       }
     };
@@ -240,13 +446,79 @@
     }
 
     if (reloadBtn) {
-      reloadBtn.addEventListener("click", loadBorrowings);
+      reloadBtn.addEventListener("click", async () => {
+        setLoading(reloadBtn, true);
+        try {
+          await loadBorrowings();
+        } finally {
+          setLoading(reloadBtn, false);
+        }
+      });
     }
     if (keywordInput) {
       keywordInput.addEventListener("input", applyBorrowingsFilter);
       filterBar.bindEnterToSubmit(keywordInput, applyBorrowingsFilter);
     }
+
+    if (inventoryBody) {
+      inventoryBody.addEventListener("click", async (event) => {
+        const actionEl = event.target.closest("[data-action]");
+        if (!actionEl || !inventoryBody.contains(actionEl)) {
+          return;
+        }
+        const action = String(actionEl.dataset.action || "").trim().toLowerCase();
+        if (action !== "borrow") {
+          return;
+        }
+        event.preventDefault();
+        const bookId = parseBookId(actionEl);
+        if (!bookId) {
+          if (inventoryEmpty) {
+            inventoryEmpty.textContent = "图书 ID 无效";
+            inventoryEmpty.classList.remove("hidden");
+          }
+          return;
+        }
+        await borrowBook(bookId, actionEl);
+      });
+    }
+
+    if (inventoryReloadBtn) {
+      inventoryReloadBtn.addEventListener("click", async () => {
+        const keyword = String(inventoryKeywordInput?.value || "").trim();
+        setLoading(inventoryReloadBtn, true);
+        try {
+          await loadInventory({ page: 0, keyword });
+        } finally {
+          setLoading(inventoryReloadBtn, false);
+        }
+      });
+    }
+    if (inventoryKeywordInput) {
+      filterBar.bindEnterToSubmit(inventoryKeywordInput, () => {
+        const keyword = String(inventoryKeywordInput.value || "").trim();
+        loadInventory({ page: 0, keyword });
+      });
+    }
+    if (inventoryPrevBtn) {
+      inventoryPrevBtn.addEventListener("click", () => {
+        if (inventoryPage <= 0) {
+          return;
+        }
+        loadInventory({ page: inventoryPage - 1, keyword: inventoryKeyword });
+      });
+    }
+    if (inventoryNextBtn) {
+      inventoryNextBtn.addEventListener("click", () => {
+        if (inventoryPage >= inventoryTotalPages - 1) {
+          return;
+        }
+        loadInventory({ page: inventoryPage + 1, keyword: inventoryKeyword });
+      });
+    }
+
     loadBorrowings();
+    loadInventory();
     return;
   }
 
@@ -269,9 +541,9 @@
         <tr>
           <td>${escapeHtml(row.id)}</td>
           <td>${escapeHtml(row.bookTitle)}</td>
-          <td>${formatDate(row.borrowTime)}</td>
-          <td>${formatDate(row.returnTime)}</td>
-          <td>${escapeHtml(row.status)}</td>
+          <td>${formatDateTime(row.borrowTime)}</td>
+          <td>${formatDateTime(row.returnTime)}</td>
+          <td>${statusLabel(row.status)}</td>
           <td>${escapeHtml(row.overdueFee ?? 0)}</td>
         </tr>
       `);
@@ -379,7 +651,7 @@
           <td>${escapeHtml(row.bookTitle)}</td>
           <td>${escapeHtml(row.overdueDays)}</td>
           <td>${escapeHtml(row.overdueFee)}</td>
-          <td>${formatDate(row.createdAt)}</td>
+          <td>${formatDateTime(row.createdAt)}</td>
         </tr>
       `);
       tableView.renderRows(tbody, rowHtmlList, "暂无罚金记录。", 5);
@@ -465,11 +737,18 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
-          await userApi.updateProfile({
+          const res = await userApi.updateProfile({
             realName: realNameEl?.value?.trim() || "",
             phone: phoneEl?.value?.trim() || "",
             idCard: idCardEl?.value?.trim() || ""
           });
+          const updatedUser = res?.data || null;
+          if (updatedUser) {
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            document.querySelectorAll("#userDisplayName").forEach((el) => {
+              el.textContent = updatedUser.realName || updatedUser.username || "读者";
+            });
+          }
           if (hint) {
             hint.textContent = "资料已更新";
             hint.classList.remove("hidden");

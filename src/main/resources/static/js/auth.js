@@ -5,6 +5,25 @@ function show(msg) {
   window.Toast.show(msg);
 }
 
+function parseStoredUser() {
+  const raw = localStorage.getItem("user");
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function resolvePostLoginUrl(user) {
+  if (user && user.role === "ADMIN") {
+    return "/admin/index.html";
+  }
+  return "/user/dashboard.html";
+}
+
 function setPrimaryButtonLoading(loading) {
   const btn = document.querySelector(".auth-card .btn");
   if (!btn) {
@@ -58,7 +77,7 @@ async function login() {
       localStorage.removeItem("refreshToken");
     }
     localStorage.setItem("user", JSON.stringify(res.data));
-    window.location.href = "/";
+    window.location.href = resolvePostLoginUrl(res.data);
   } catch (e) {
     show(e.message);
   } finally {
@@ -91,7 +110,14 @@ async function validateSession() {
   if (!state.token || !state.user) return false;
   const headers = { "Content-Type": "application/json", "X-Token": state.token };
   const res = await fetch("/api/users/me", { headers });
-  if (!res.ok) return false;
+  if (!res.ok) {
+    return false;
+  }
+  const payload = await res.json();
+  const latestUser = payload && payload.data ? payload.data : parseStoredUser();
+  if (latestUser) {
+    localStorage.setItem("user", JSON.stringify(latestUser));
+  }
   return true;
 }
 
@@ -99,7 +125,10 @@ async function validateSession() {
   const page = window.location.pathname;
   if (page === "/login.html" || page === "/register.html") {
     const valid = await validateSession();
-    if (valid) window.location.href = "/";
+    if (valid) {
+      window.location.href = resolvePostLoginUrl(parseStoredUser() || state.user);
+      return;
+    }
   }
 
   document.addEventListener("keydown", (event) => {

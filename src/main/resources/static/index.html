@@ -3,100 +3,37 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>图书管理系统 - 入口升级提示</title>
-    <style>
-        :root {
-            color-scheme: light;
-            --bg: #f3f4f6;
-            --card: #ffffff;
-            --text: #111827;
-            --muted: #6b7280;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --secondary: #e5e7eb;
-            --secondary-hover: #d1d5db;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            background: var(--bg);
-            color: var(--text);
-            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-        }
-
-        .card {
-            width: min(640px, 92vw);
-            background: var(--card);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        h1 {
-            margin: 0 0 12px;
-            font-size: 24px;
-        }
-
-        p {
-            margin: 0 0 12px;
-            line-height: 1.6;
-        }
-
-        .actions {
-            display: flex;
-            gap: 12px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 10px 16px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #ffffff;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: var(--text);
-        }
-
-        .btn-secondary:hover {
-            background: var(--secondary-hover);
-        }
-
-        .hint {
-            color: var(--muted);
-            font-size: 14px;
-        }
-    </style>
+    <title>图书管理系统</title>
+    <meta http-equiv="refresh" content="0;url=/home.html" />
 </head>
 <body>
-    <main class="card">
-        <h1>图书管理系统 - 入口升级提示</h1>
-        <p>/index.html 已降级为兼容跳转页。</p>
-        <div class="actions">
-            <a class="btn btn-primary" href="/admin/index.html">进入后台管理</a>
-            <a class="btn btn-secondary" href="/home.html">进入门户首页</a>
-        </div>
-        <p class="hint">如您已收藏旧入口，请更新为新版地址，避免后续访问中断。</p>
-    </main>
+<script>
+  (function redirectByRole() {
+    const token = localStorage.getItem("token") || "";
+    const rawUser = localStorage.getItem("user") || "";
+    if (!token || !rawUser) {
+      window.location.replace("/home.html");
+      return;
+    }
+
+    let user = null;
+    try {
+      user = JSON.parse(rawUser);
+    } catch (_error) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      window.location.replace("/home.html");
+      return;
+    }
+
+    if (user && user.role === "ADMIN") {
+      window.location.replace("/admin/index.html");
+      return;
+    }
+
+    window.location.replace("/user/dashboard.html");
+  })();
+</script>
 </body>
 </html>

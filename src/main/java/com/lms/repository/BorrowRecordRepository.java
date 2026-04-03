@@ -32,6 +32,23 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
     List<BorrowRecord> findByUserAndStatusesWithBook(@Param("user") User user,
                                                      @Param("statuses") Collection<BorrowStatus> statuses);
 
+    @EntityGraph(attributePaths = {"user", "book"})
+    @Query("""
+        select br from BorrowRecord br
+        join br.user u
+        join br.book b
+        where (:status is null or br.status = :status)
+          and (:keyword is null
+               or trim(:keyword) = ''
+               or lower(u.username) like lower(concat('%', :keyword, '%'))
+               or lower(u.realName) like lower(concat('%', :keyword, '%'))
+               or lower(b.title) like lower(concat('%', :keyword, '%')))
+        order by br.borrowTime desc
+        """)
+    Page<BorrowRecord> searchForAdmin(@Param("status") BorrowStatus status,
+                                      @Param("keyword") String keyword,
+                                      Pageable pageable);
+
     @Modifying
     @Query("update BorrowRecord br set br.status = :toStatus where br.status = :fromStatus and br.dueTime < :now")
     int markOverdue(@Param("fromStatus") BorrowStatus fromStatus,

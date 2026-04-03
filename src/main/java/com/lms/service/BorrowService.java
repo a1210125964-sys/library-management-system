@@ -35,6 +35,11 @@ public class BorrowService {
 
     @Transactional
     public BorrowRecord borrow(User user, Long bookId) {
+        return borrow(user, bookId, null);
+    }
+
+    @Transactional
+    public BorrowRecord borrow(User user, Long bookId, LocalDateTime requestedDueTime) {
         long currentBorrowed = borrowRecordRepository.countByUserAndStatus(user, BorrowStatus.BORROWED)
             + borrowRecordRepository.countByUserAndStatus(user, BorrowStatus.OVERDUE);
         if (currentBorrowed >= systemConfigService.maxBorrowCount()) {
@@ -50,8 +55,12 @@ public class BorrowService {
         BorrowRecord record = new BorrowRecord();
         record.setUser(user);
         record.setBook(book);
-        record.setBorrowTime(LocalDateTime.now());
-        record.setDueTime(LocalDateTime.now().plusDays(systemConfigService.borrowDays()));
+        LocalDateTime borrowTime = LocalDateTime.now();
+        record.setBorrowTime(borrowTime);
+        LocalDateTime dueTime = requestedDueTime != null
+            ? validateBorrowDueTime(requestedDueTime, borrowTime)
+            : borrowTime.plusDays(systemConfigService.borrowDays());
+        record.setDueTime(dueTime);
         record.setStatus(BorrowStatus.BORROWED);
         record.setRenewCount(0);
         record.setOverdueFee(BigDecimal.ZERO);
@@ -91,6 +100,11 @@ public class BorrowService {
 
     @Transactional
     public BorrowRecord renew(User user, Long recordId) {
+        return renew(user, recordId, null);
+    }
+
+    @Transactional
+    public BorrowRecord renew(User user, Long recordId, LocalDateTime requestedDueTime) {
         BorrowRecord record = findOwnedRecord(user, recordId);
         if (record.getStatus() == BorrowStatus.RETURNED) {
             throw new BusinessException("已归还记录不可续借");
@@ -102,9 +116,19 @@ public class BorrowService {
             throw new BusinessException("每本图书仅允许续借 1 次");
         }
 
-        record.setDueTime(record.getDueTime().plusDays(systemConfigService.borrowDays()));
+        LocalDateTime dueTime = requestedDueTime != null
+            ? validateRenewDueTime(requestedDueTime, record.getDueTime())
+            : record.getDueTime().plusDays(systemConfigService.borrowDays());
+        record.setDueTime(dueTime);
         record.setRenewCount(record.getRenewCount() + 1);
         return borrowRecordRepository.save(record);
+    }
+
+    public Page<BorrowRecord> listAdminRecords(BorrowStatus status, String keyword, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        return borrowRecordRepository.searchForAdmin(status, normalizedKeyword, PageRequest.of(safePage, safeSize));
     }
 
     @Transactional
@@ -165,5 +189,25 @@ public class BorrowService {
         return BigDecimal.valueOf(days)
             .multiply(BigDecimal.valueOf(systemConfigService.overdueDailyFee()))
             .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private LocalDateTime validateBorrowDueTime(LocalDateTime dueTime, LocalDateTime borrowTime) {
+        if (!dueTime.isAfter(borrowTime)) {
+            throw new BusinessException("应还时间必须晚于借书时间");
+        }
+        if (dueTime.isAfter(borrowTime.plusMonths(1))) {
+            throw new BusinessException("应还时间不能超过一个月");
+        }
+        return dueTime;
+    }
+
+    private LocalDateTime validateRenewDueTime(LocalDateTime dueTime, LocalDateTime currentDueTime) {
+        if (!dueTime.isAfter(currentDueTime)) {
+            throw new BusinessException("续借后的应还时间必须晚于当前应还时间");
+        }
+        if (dueTime.isAfter(currentDueTime.plusMonths(1))) {
+            throw new BusinessException("续借时间不能超过一个月");
+        }
+        return dueTime;
     }
 }
