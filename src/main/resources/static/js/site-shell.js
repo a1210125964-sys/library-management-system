@@ -59,4 +59,16 @@
       window.location.href = target;
     });
   });
+
+  // ── 动态更新右上角登录状态 ──
+  const siteAuth = document.getElementById("siteAuth");
+  if (siteAuth) {
+    const token = localStorage.getItem("token") || "";
+    const user = parseStoredUser();
+    if (token && user) {
+      siteAuth.innerHTML = '<span class="greeting">你好，' + (user.realName || user.username) + '</span>';
+    } else {
+      siteAuth.innerHTML = '<span class="greeting">未登录，<a href="/login.html">请先登录</a></span>';
+    }
+  }
 })();

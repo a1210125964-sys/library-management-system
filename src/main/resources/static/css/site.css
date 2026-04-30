@@ -92,6 +92,21 @@ body {
   outline-offset: 2px;
 }
 
+.site-auth .greeting {
+  color: var(--text-900);
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.site-auth .greeting a {
+  color: var(--primary-500);
+  text-decoration: underline;
+  font-weight: 600;
+  padding: 0;
+  display: inline;
+}
+
 .site-auth .btn-link {
   color: #ffffff;
   background: var(--primary-500);
