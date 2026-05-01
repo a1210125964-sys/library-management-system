@@ -1,5 +1,6 @@
 package com.lms.controller;
 
+import com.lms.service.BorrowService;
 import com.lms.exception.BusinessException;
 import com.lms.model.Notice;
 import com.lms.model.User;
@@ -60,6 +61,9 @@ class AdminNoticeControllerTest {
 
     @MockBean
     private NoticeService noticeService;
+
+    @MockBean
+    private BorrowService borrowService;
 
     @Test
     void admin_should_create_notice() throws Exception {

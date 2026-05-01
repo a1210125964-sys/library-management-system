@@ -53,7 +53,7 @@ set DB_USERNAME=root
 set DB_PASSWORD=你的密码
 ```
 
-3. 在 [application.properties](src/main/resources/application.properties) 中取消注释 MySQL 配置并注释 H2 配置。
+3. 在 [application.properties](backend/main/resources/application.properties) 中取消注释 MySQL 配置并注释 H2 配置。
 
 4. 启动：
 

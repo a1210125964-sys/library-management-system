@@ -42,9 +42,10 @@ public class StatisticsService {
 
     public Map<String, Object> publicOverview() {
         Map<String, Object> map = new HashMap<>();
-        Object[] stockSummary = bookRepository.sumStockAndAvailableStock();
-        long totalBooks = longVal(stockSummary == null || stockSummary.length == 0 ? null : stockSummary[0]);
-        long availableBooks = longVal(stockSummary == null || stockSummary.length < 2 ? null : stockSummary[1]);
+        List<Object[]> stockSummary = bookRepository.sumStockAndAvailableStock();
+        Object[] row = (stockSummary == null || stockSummary.isEmpty()) ? new Object[0] : stockSummary.get(0);
+        long totalBooks = longVal(row.length > 0 ? row[0] : null);
+        long availableBooks = longVal(row.length > 1 ? row[1] : null);
         long borrowedBooks = Math.max(0, totalBooks - availableBooks);
         map.put("totalBooks", totalBooks);
         map.put("availableBooks", availableBooks);
