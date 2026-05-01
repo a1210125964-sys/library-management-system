@@ -33,6 +33,7 @@ public class BookService {
         Book book = new Book();
         merge(book, req);
         book.setAvailableStock(req.getStock());
+        book.setActive(true);
         book.setCreatedAt(LocalDateTime.now());
         book.setUpdatedAt(LocalDateTime.now());
         return bookRepository.save(book);
@@ -65,20 +66,39 @@ public class BookService {
         bookRepository.delete(book);
     }
 
+    @Transactional
+    public Book shelve(Long id, boolean active) {
+        Book book = findById(id);
+        if (!active && book.getAvailableStock() < book.getStock()) {
+            throw new BusinessException("存在未归还借阅记录，无法下架图书");
+        }
+        book.setActive(active);
+        book.setUpdatedAt(LocalDateTime.now());
+        return bookRepository.save(book);
+    }
+
     public Book findById(Long id) {
         return bookRepository.findById(id).orElseThrow(() -> new BusinessException("图书不存在"));
     }
 
     public List<Book> list(String keyword) {
         if (keyword == null || keyword.isBlank()) {
-            return bookRepository.findAll();
+            return bookRepository.findByActiveTrue();
         }
-        return bookRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCaseOrCategoryContainingIgnoreCase(
-            keyword, keyword, keyword, keyword
-        );
+        return bookRepository.findByActiveTrueAndKeyword(keyword);
     }
 
     public Page<Book> listPage(String keyword, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "id"));
+        if (keyword == null || keyword.isBlank()) {
+            return bookRepository.findByActiveTrue(pageable);
+        }
+        return bookRepository.findByActiveTrueAndKeyword(keyword, pageable);
+    }
+
+    public Page<Book> listAllPage(String keyword, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 100));
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "id"));

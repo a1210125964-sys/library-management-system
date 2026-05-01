@@ -67,13 +67,14 @@ public class UserPortalController {
     @GetMapping("/history")
     public ApiResponse<List<Map<String, Object>>> history(@RequestHeader("X-Token") String token,
                                                           @RequestParam(required = false) Integer page,
-                                                          @RequestParam(required = false) Integer size) {
+                                                          @RequestParam(required = false) Integer size,
+                                                          @RequestParam(required = false) String status) {
         User user = authService.requireUser(token);
         if ((page == null) != (size == null)) {
             throw new BusinessException("page 和 size 需同时提供");
         }
         if (page != null && size != null) {
-            Page<BorrowRecord> result = borrowService.myHistoryPaged(user, page, size);
+            Page<BorrowRecord> result = borrowService.myHistoryPaged(user, page, size, status);
             List<Map<String, Object>> data = result.getContent().stream().map(this::recordMap).collect(Collectors.toList());
             return ApiResponse.success("查询成功", data, pagination(result));
         }

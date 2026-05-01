@@ -44,4 +44,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
         String category,
         Pageable pageable
     );
+
+    List<Book> findByActiveTrue();
+
+    Page<Book> findByActiveTrue(Pageable pageable);
+
+    @Query("select b from Book b where b.active = true and (lower(b.title) like lower(concat('%', :keyword, '%')) or lower(b.author) like lower(concat('%', :keyword, '%')) or lower(b.isbn) like lower(concat('%', :keyword, '%')) or lower(b.category) like lower(concat('%', :keyword, '%')))")
+    Page<Book> findByActiveTrueAndKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("select b from Book b where b.active = true and (lower(b.title) like lower(concat('%', :keyword, '%')) or lower(b.author) like lower(concat('%', :keyword, '%')) or lower(b.isbn) like lower(concat('%', :keyword, '%')) or lower(b.category) like lower(concat('%', :keyword, '%')))")
+    List<Book> findByActiveTrueAndKeyword(@Param("keyword") String keyword);
 }

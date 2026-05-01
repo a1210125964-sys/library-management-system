@@ -72,6 +72,20 @@ public class NoticeService {
         noticeRepository.delete(notice);
     }
 
+    @Transactional
+    public Notice publish(Long id, User adminUser) {
+        validateAdmin(adminUser);
+
+        Notice notice = noticeRepository.findById(id).orElseThrow(() -> new BusinessException("公告不存在"));
+        if (Boolean.TRUE.equals(notice.getPublished())) {
+            throw new BusinessException("公告已发布，无需重复操作");
+        }
+        notice.setPublished(true);
+        notice.setPublishedAt(LocalDateTime.now());
+        notice.setUpdatedAt(LocalDateTime.now());
+        return noticeRepository.save(notice);
+    }
+
     public Page<Notice> listAll(int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, Math.min(size, 100));

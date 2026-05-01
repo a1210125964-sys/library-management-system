@@ -26,6 +26,11 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Long
     long countByUserIdAndStatusIn(Long userId, Collection<BorrowStatus> statuses);
     long countByUserIdAndStatus(Long userId, BorrowStatus status);
     long countByStatusIn(Collection<BorrowStatus> statuses);
+    long countByStatus(BorrowStatus status);
+
+    @EntityGraph(attributePaths = "book")
+    @Query("select br from BorrowRecord br where br.user = :user and br.status = 'RETURNED' and br.overdueFee > 0 order by br.borrowTime desc")
+    Page<BorrowRecord> findOverdueHistoryByUser(@Param("user") User user, Pageable pageable);
     List<BorrowRecord> findByStatusAndDueTimeBefore(BorrowStatus status, LocalDateTime time);
 
     @Query("select br from BorrowRecord br join fetch br.book where br.user = :user and br.status in :statuses order by br.borrowTime desc")

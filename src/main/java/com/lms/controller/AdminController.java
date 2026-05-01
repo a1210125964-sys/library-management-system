@@ -4,16 +4,20 @@ import com.lms.dto.ApiResponse;
 import com.lms.dto.ConfigUpdateRequest;
 import com.lms.dto.NoticeRequest;
 import com.lms.dto.ResetPasswordRequest;
+import com.lms.dto.RoleUpdateRequest;
 import com.lms.model.AdminOperationLog;
 import com.lms.model.Notice;
+import com.lms.model.OverdueRecord;
 import com.lms.model.User;
 import com.lms.model.UserRole;
 import com.lms.service.AdminLogService;
 import com.lms.service.AuthService;
+import com.lms.service.BorrowService;
 import com.lms.service.NoticeService;
 import com.lms.service.StatisticsService;
 import com.lms.service.SystemConfigService;
 import com.lms.service.UserService;
+import org.springframework.data.domain.Page;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -40,19 +44,22 @@ public class AdminController {
     private final AdminLogService adminLogService;
     private final UserService userService;
     private final NoticeService noticeService;
+    private final BorrowService borrowService;
 
     public AdminController(AuthService authService,
                            StatisticsService statisticsService,
                            SystemConfigService systemConfigService,
                            AdminLogService adminLogService,
                            UserService userService,
-                           NoticeService noticeService) {
+                           NoticeService noticeService,
+                           BorrowService borrowService) {
         this.authService = authService;
         this.statisticsService = statisticsService;
         this.systemConfigService = systemConfigService;
         this.adminLogService = adminLogService;
         this.userService = userService;
         this.noticeService = noticeService;
+        this.borrowService = borrowService;
     }
 
     @GetMapping("/stats")
@@ -98,6 +105,24 @@ public class AdminController {
         return success("更新成功", configs);
     }
 
+    @GetMapping("/overdue-stats")
+    public Map<String, Object> overdueStats(@RequestHeader("X-Token") String token) {
+        authService.requireAdmin(token);
+        Map<String, Object> data = statisticsService.overview();
+        data.put("currentOverdueCount", borrowService.countCurrentOverdue());
+        return success("查询成功", data);
+    }
+
+    @GetMapping("/overdue-records")
+    public Map<String, Object> overdueRecords(@RequestHeader("X-Token") String token,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size) {
+        authService.requireAdmin(token);
+        Page<OverdueRecord> result = borrowService.listAllOverdueRecords(page, size);
+        List<Map<String, Object>> data = result.getContent().stream().map(this::overdueMap).collect(Collectors.toList());
+        return success("查询成功", data, pagination(result));
+    }
+
     @GetMapping("/users")
     public Map<String, Object> users(@RequestHeader("X-Token") String token,
                                      @RequestParam(required = false) String role,
@@ -132,6 +157,24 @@ public class AdminController {
             resolveClientIp(request),
             request.getHeader("User-Agent"));
         return success("密码重置成功", userMap(user));
+    }
+
+    @PutMapping("/users/{id}/role")
+    public Map<String, Object> updateUserRole(@RequestHeader("X-Token") String token,
+                                              @PathVariable Long id,
+                                              @Valid @RequestBody RoleUpdateRequest req,
+                                              HttpServletRequest request) {
+        long start = System.currentTimeMillis();
+        User admin = authService.requireAdmin(token);
+        User user = userService.updateRole(id, req.getRole());
+        adminLogService.log(admin,
+            "修改用户角色",
+            "userId=" + id + ", newRole=" + req.getRole(),
+            "SUCCESS",
+            System.currentTimeMillis() - start,
+            resolveClientIp(request),
+            request.getHeader("User-Agent"));
+        return success("角色修改成功", userMap(user));
     }
 
     @GetMapping("/logs")
@@ -202,6 +245,21 @@ public class AdminController {
         return ApiResponse.success("删除成功", null);
     }
 
+    @PostMapping("/notices/{id}/publish")
+    public ApiResponse<Map<String, Object>> publishNotice(@RequestHeader("X-Token") String token,
+                                                           @PathVariable Long id,
+                                                           HttpServletRequest request) {
+        long start = System.currentTimeMillis();
+        User admin = authService.requireAdmin(token);
+        Notice notice = noticeService.publish(id, admin);
+        safeLogAdminOperation(admin,
+            "发布公告",
+            "noticeId=" + id,
+            System.currentTimeMillis() - start,
+            request);
+        return ApiResponse.success("发布成功", noticeMap(notice));
+    }
+
     @GetMapping("/notices")
     public ApiResponse<List<Map<String, Object>>> notices(@RequestHeader("X-Token") String token,
                                                            @RequestParam(defaultValue = "0") int page,
@@ -269,6 +327,23 @@ public class AdminController {
         map.put("publishedAt", notice.getPublishedAt());
         map.put("createdAt", notice.getCreatedAt());
         map.put("updatedAt", notice.getUpdatedAt());
+        return map;
+    }
+
+    private Map<String, Object> overdueMap(OverdueRecord record) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", record.getId());
+        map.put("userId", record.getUser().getId());
+        map.put("username", record.getUser().getUsername());
+        map.put("realName", record.getUser().getRealName());
+        map.put("bookId", record.getBook().getId());
+        map.put("bookTitle", record.getBook().getTitle());
+        map.put("overdueDays", record.getOverdueDays());
+        map.put("overdueFee", record.getOverdueFee());
+        map.put("borrowTime", record.getBorrowRecord().getBorrowTime());
+        map.put("dueTime", record.getBorrowRecord().getDueTime());
+        map.put("returnTime", record.getBorrowRecord().getReturnTime());
+        map.put("createdAt", record.getCreatedAt());
         return map;
     }
 

@@ -33,9 +33,10 @@ public class BookController {
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> list(@RequestParam(required = false) String keyword,
                                                        @RequestParam(required = false) Integer page,
-                                                       @RequestParam(required = false) Integer size) {
+                                                       @RequestParam(required = false) Integer size,
+                                                       @RequestParam(defaultValue = "false") boolean all) {
         if (page != null && size != null) {
-            Page<Book> result = bookService.listPage(keyword, page, size);
+            Page<Book> result = all ? bookService.listAllPage(keyword, page, size) : bookService.listPage(keyword, page, size);
             List<Map<String, Object>> data = result.getContent().stream().map(this::bookMap).collect(Collectors.toList());
             return ApiResponse.success("查询成功", data, pagination(result));
         }
@@ -69,6 +70,16 @@ public class BookController {
         return ApiResponse.success("删除成功", null);
     }
 
+    @PutMapping("/{id}/shelve")
+    public ApiResponse<Map<String, Object>> shelve(@RequestHeader("X-Token") String token,
+                                                    @PathVariable Long id,
+                                                    @RequestParam boolean active) {
+        User admin = authService.requireAdmin(token);
+        Book book = bookService.shelve(id, active);
+        adminLogService.log(admin, active ? "上架图书" : "下架图书", "bookId=" + id);
+        return ApiResponse.success(active ? "上架成功" : "下架成功", bookMap(book));
+    }
+
     private Map<String, Object> pagination(Page<?> page) {
         Map<String, Object> map = new HashMap<>();
         map.put("page", page.getNumber());
@@ -90,6 +101,7 @@ public class BookController {
         map.put("category", book.getCategory());
         map.put("stock", book.getStock());
         map.put("availableStock", book.getAvailableStock());
+        map.put("active", book.getActive());
         return map;
     }
 }

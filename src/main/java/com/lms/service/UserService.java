@@ -93,6 +93,13 @@ public class UserService {
     }
 
     @Transactional
+    public User updateRole(Long userId, UserRole newRole) {
+        User user = findById(userId);
+        user.setRole(newRole);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User changePassword(User user, String oldPassword, String newPassword) {
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BusinessException("当前密码不正确");

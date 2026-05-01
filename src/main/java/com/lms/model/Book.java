@@ -37,6 +37,9 @@ public class Book {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    private Boolean active = true;
+
     public Long getId() {
         return id;
     }
@@ -115,5 +118,13 @@ public class Book {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 }

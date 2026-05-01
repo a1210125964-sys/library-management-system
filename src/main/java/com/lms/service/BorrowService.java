@@ -150,12 +150,15 @@ public class BorrowService {
         );
     }
 
-    public Page<BorrowRecord> myHistoryPaged(User user, int page, int size) {
+    public Page<BorrowRecord> myHistoryPaged(User user, int page, int size, String status) {
         if (page < 0) {
             throw new BusinessException("分页参数 page 不能小于 0");
         }
         if (size <= 0 || size > 100) {
             throw new BusinessException("分页参数 size 必须在 1 到 100 之间");
+        }
+        if ("OVERDUE".equals(status)) {
+            return borrowRecordRepository.findOverdueHistoryByUser(user, PageRequest.of(page, size));
         }
         return borrowRecordRepository.findByUserAndStatusInOrderByBorrowTimeDesc(
             user,
@@ -174,6 +177,16 @@ public class BorrowService {
 
     public long countOverdueByUser(Long userId) {
         return borrowRecordRepository.countByUserIdAndStatus(userId, BorrowStatus.OVERDUE);
+    }
+
+    public Page<OverdueRecord> listAllOverdueRecords(int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        return overdueRecordRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage, safeSize));
+    }
+
+    public long countCurrentOverdue() {
+        return borrowRecordRepository.countByStatus(BorrowStatus.OVERDUE);
     }
 
     private BorrowRecord findOwnedRecord(User user, Long recordId) {

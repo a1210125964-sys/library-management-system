@@ -57,7 +57,7 @@ class UserPortalHistoryPagingTest {
         BorrowRecord record = buildRecord(12L, BorrowStatus.RETURNED);
 
         Mockito.when(authService.requireUser("token")).thenReturn(user);
-        Mockito.when(borrowService.myHistoryPaged(user, 0, 10))
+        Mockito.when(borrowService.myHistoryPaged(user, 0, 10, null))
             .thenReturn(new PageImpl<>(List.of(record), PageRequest.of(0, 10), 1));
 
         mockMvc.perform(get("/api/user/history")
@@ -76,7 +76,7 @@ class UserPortalHistoryPagingTest {
         User user = buildUser();
 
         Mockito.when(authService.requireUser("token")).thenReturn(user);
-        Mockito.when(borrowService.myHistoryPaged(user, -1, 10))
+        Mockito.when(borrowService.myHistoryPaged(user, -1, 10, null))
             .thenThrow(new BusinessException("分页参数 page 不能小于 0"));
 
         mockMvc.perform(get("/api/user/history")
@@ -106,7 +106,7 @@ class UserPortalHistoryPagingTest {
         User user = buildUser();
 
         Mockito.when(authService.requireUser("token")).thenReturn(user);
-        Mockito.when(borrowService.myHistoryPaged(user, 0, 0))
+        Mockito.when(borrowService.myHistoryPaged(user, 0, 0, null))
             .thenThrow(new BusinessException("分页参数 size 必须大于 0"));
 
         mockMvc.perform(get("/api/user/history")
